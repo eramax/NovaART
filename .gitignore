@@ -4,6 +4,7 @@ output/
 
 # AOSP checkout (user syncs separately)
 aosp/
+deps/aosp-full/
 
 # Compiled objects
 *.o
