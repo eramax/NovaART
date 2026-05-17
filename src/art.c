@@ -15,16 +15,17 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
     /* Attempt to load libart.so */
     state->libart_handle = dlopen("libart.so", RTLD_NOW | RTLD_GLOBAL);
     if (!state->libart_handle) {
-        fprintf(stderr, "Warning: libart.so not found: %s\n", dlerror());
+        fprintf(stderr, "libart.so not found: %s\n", dlerror());
         fprintf(stderr, "Set LD_LIBRARY_PATH to point to ART build output\n");
-        /* Non-fatal for now — skeleton works without ART */
-        return 0;
+        return -1;
     }
 
     JNI_CreateJavaVM_t JNI_CreateJavaVM = dlsym(state->libart_handle, "JNI_CreateJavaVM");
     if (!JNI_CreateJavaVM) {
-        fprintf(stderr, "Warning: JNI_CreateJavaVM not found in libart.so: %s\n", dlerror());
-        return 0;
+        fprintf(stderr, "JNI_CreateJavaVM not found in libart.so: %s\n", dlerror());
+        dlclose(state->libart_handle);
+        state->libart_handle = NULL;
+        return -1;
     }
 
     JavaVMInitArgs args;
@@ -35,8 +36,12 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
 
     jint ret = JNI_CreateJavaVM(&state->jvm, (void**)&state->env, &args);
     if (ret < 0) {
-        fprintf(stderr, "Warning: JNI_CreateJavaVM failed: %d\n", ret);
-        return 0;
+        fprintf(stderr, "JNI_CreateJavaVM failed: %d\n", ret);
+        dlclose(state->libart_handle);
+        state->libart_handle = NULL;
+        state->jvm = NULL;
+        state->env = NULL;
+        return -1;
     }
 
     printf("ART runtime initialized (JavaVM: %p, JNIEnv: %p)\n",

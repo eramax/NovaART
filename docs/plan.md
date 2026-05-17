@@ -39,7 +39,25 @@ Or install Alpine's `art_standalone` for initial testing:
 
 Expected: "JVM created successfully", "Hello from ART!"
 
-- [ ] **Step 4: Test with Android framework classes (when available)**
+- [ ] **Step 4: Verify with ldd that libart.so's transitive deps are satisfied**
+
+```sh
+ldd deps/NovaART/output/lib/libart.so
+# Should show all libraries resolved (libc++, libdexfile, etc.)
+```
+
+- [ ] **Step 5: Verify ART can find boot image (core.art/boot.oat)**
+
+After building via `banchan` or the AOSP host build, verify the boot image
+layout. ART requires `$ANDROID_ROOT/com.android.art/` with:
+```
+com.android.art/
+├── bin/dalvikvm
+├── etc/
+├── lib64/libart.so
+├── framework/  (boot image .oat/.art files)
+└── javalib/     (core-oj-hostdex.jar etc.)
+```
 
 **Deliverable:** ART boots on Ubuntu host, JNI works.
 
@@ -58,67 +76,127 @@ external/libunwind/ libnativehelper/ system/core/ prebuilts/go/
 prebuilts/clang/host/linux-x86/  prebuilts/rust/
 ```
 
-- [ ] **Step 2: Build libart.so + dex2oat**
+- [ ] **Step 2: Build libart.so + dex2oat** (via Soong, not Make)
 
 ```sh
 cd deps/aosp-full
 source build/envsetup.sh
-lunch silvermont-eng
-make libart dex2oat -j$(nproc)
+export SOONG_ALLOW_MISSING_DEPENDENCIES=true
+export TARGET_BUILD_UNBUNDLED=true
+build/soong/soong_ui.bash --make-mode -j$(nproc) libart dex2oat
+```
+
+If Soong glob state is stale from previous build, clean first:
+```sh
+rm -rf out/soong/
+```
+
+Alternative (official ART module build, produces APEX — overkill):
+```sh
+banchan com.android.art x86_64
+m apps_only dist
 ```
 
 - [ ] **Step 3: Verify symbols**
 
 ```sh
-nm -D out/host/linux-x86_64/lib64/libart.so | grep JNI_CreateJavaVM
+nm -D out/soong/host/linux-x86_64/lib64/libart.so | grep JNI_CreateJavaVM
 ```
 
 - [ ] **Step 4: Package ART artifacts**
 
 ```sh
 mkdir -p deps/NovaART/output/lib deps/NovaART/output/bin
-cp out/host/linux-x86_64/lib64/libart.so deps/NovaART/output/lib/
-cp out/host/linux-x86_64/bin/dex2oat deps/NovaART/output/bin/
+cp out/soong/host/linux-x86_64/lib64/libart.so deps/NovaART/output/lib/
+cp out/soong/host/linux-x86_64/bin/dex2oat deps/NovaART/output/bin/
+```
+
+If build paths differ, find artifacts:
+```sh
+find out/ -name libart.so -type f 2>/dev/null
+find out/ -name dex2oat -type f 2>/dev/null
 ```
 
 **Deliverable:** `libart.so` + `dex2oat` built from AOSP for native glibc host.
 
 ---
 
-### Task 3: Compile AOSP Framework Java to OAT
+### Task 3a: Core Bootclasspath Image (Required for Phase 1)
 
-**Goal:** Compile AOSP `frameworks/base/core/java/` to DEX → OAT so ART can load framework classes.
+**Critical:** ART cannot create a JavaVM without core Java classes
+(java.lang.Object, java.lang.String, java.util.*, etc.). These come from
+`libcore/` and must be compiled to DEX → OAT as a boot image.
 
-**Approach:** Use full `make framework` from AOSP rather than manual subset (avoids ClassNotFoundException rabbit holes).
+This is **not** the same as "framework" classes (android.*). The core
+bootclasspath is required before ANY ART runtime experiment works.
 
-- [ ] **Step 1: Build full framework via AOSP**
+**Approach:** Build libart + core boot image via the AOSP build system
+(banchan approach), then extract the boot image files.
+
+- [ ] **Step 1: Build ART + boot image via banchan**
 
 ```sh
 cd deps/aosp-full
-make framework -j$(nproc)
-# Produces out/target/common/obj/JAVA_LIBRARIES/framework_intermediates/classes.jar
+source build/envsetup.sh
+banchan com.android.art x86_64
+m apps_only dist -j$(nproc)
 ```
 
-- [ ] **Step 2: Convert JAR → DEX → OAT**
+This produces:
+- `out/soong/host/linux-x86_64/com.android.art/` — full host ART runtime
+  - `framework/` — boot.art, boot.oat, core.art, core.oat
+  - `javalib/` — core-oj-hostdex.jar, core-libart-hostdex.jar, etc.
+  - `lib64/libart.so` — host ART
+  - `bin/dex2oat` — host dex2oat
+  - `etc/` — config files
+
+- [ ] **Step 2: Stage boot image for NovaART**
 
 ```sh
-d8 --release --output output/dex/ classes.jar
-dex2oat \
-  --dex-file=output/dex/classes.dex \
-  --oat-file=output/framework/boot.oat \
-  --instruction-set=x86_64 \
-  --compiler-filter=speed
+mkdir -p deps/NovaART/output/android-data/com.android.art
+cp -r out/soong/host/linux-x86_64/com.android.art/framework \
+      deps/NovaART/output/android-data/com.android.art/
+cp -r out/soong/host/linux-x86_64/com.android.art/javalib \
+      deps/NovaART/output/android-data/com.android.art/
 ```
 
-- [ ] **Step 3: Verify OAT file**
+- [ ] **Step 3: Set required ART environment variables**
 
 ```sh
-oatdump --oat-file=output/framework/boot.oat
+export ANDROID_ROOT=./output/android-data
+export ANDROID_ART_ROOT=./output/android-data/com.android.art
+export ANDROID_DATA=./output/android-data/data
+export ANDROID_TZDATA_ROOT=./output/android-data/com.android.tzdata
+# mkdir -p $ANDROID_DATA
 ```
 
-- [ ] **Step 4: Test loading OAT in ART**
+- [ ] **Step 4: Test ART VM creation with full env**
 
-**Deliverable:** Framework boot.oat loads without errors.
+```sh
+LD_LIBRARY_PATH=./output/lib \
+ANDROID_ROOT=./output/android-data \
+ANDROID_ART_ROOT=./output/android-data/com.android.art \
+./output/bin/novaart apks/gles3jni.apk
+```
+
+**Deliverable:** ART VM creates successfully. libart.so loads, boot image
+found, JNI works.
+
+---
+
+### Task 3b: AOSP Framework Java to OAT (Deferred — Phase 2+)
+
+**Goal:** Compile AOSP `frameworks/base/core/java/` to DEX → OAT for apps
+that need android.* classes (Canvas, Views, etc.).
+
+**Context:** `frameworks/base/` is NOT in master-art manifest. Need either:
+- Full AOSP checkout for `frameworks/base/`
+- Or prebuilt `android.jar` from an SDK
+- Or compile nova-specific android.* stubs to DEX manually
+
+**Not needed for Phase 1** (gles3jni uses GLES directly, not Canvas/Views).
+
+**Deliverable:** Framework classes load from OAT when needed.
 
 ---
 
@@ -350,9 +428,9 @@ After MVP on host, port to QOS/Alpine:
 ## Task Ordering and Dependencies
 
 ```
-Task 1 (ART bootstrap) → Task 2 (build ART) → Task 3 (framework OAT)
+Task 1 (ART bootstrap) → Task 2 (build ART) → Task 3a (bootclasspath image)
                                                      ↓
-Task 4 (Wayland window) ──────────────────────→ Task 3b (Looper/Choreo)
+Task 4 (Wayland window) ──────────────────────→ Task 3b_looper (Looper/Choreo)
                                                      ↓
 Task 5 (JNI stubs) ───────────────────────────→ Task 6 (GLES) ← Task 7 (input)
                                                      ↓
@@ -361,6 +439,8 @@ Task 5 (JNI stubs) ────────────────────�
 Task 8 (APK + Activity) ─────────────────────→ Task 9 (Canvas)
                                                      ↓
                                               Task 10 (MVP)
+
+Task 3b_framework (framework OAT) ─────────── deferred to Phase 2+
 ```
 
 ## Timeline (Revised)
