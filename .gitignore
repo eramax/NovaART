@@ -1,0 +1,34 @@
+# Build artifacts
+build/
+output/
+
+# AOSP checkout (user syncs separately)
+aosp/
+
+# Compiled objects
+*.o
+*.so
+*.a
+*.o.tmp
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Build scripts generate these
+*.oat
+*.dex
+*.odex
+*.art
+*.vdex
