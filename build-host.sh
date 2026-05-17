@@ -7,6 +7,20 @@ cd "$(dirname "$0")"
 BUILD_DIR="${BUILD_DIR:-build/host}"
 PREFIX="${PREFIX:-$PWD/output}"
 
+# Toolchain: prefer AOSP prebuilt Clang, fall back to system
+AOSP_CLANG="../aosp-full/prebuilts/clang/host/linux-x86/clang-r547379/bin"
+if [ -x "$AOSP_CLANG/clang" ]; then
+  export CC="$AOSP_CLANG/clang"
+  export CXX="$AOSP_CLANG/clang++"
+  echo "  Toolchain: AOSP Clang ($AOSP_CLANG)"
+elif command -v clang-20 >/dev/null 2>&1; then
+  export CC="$(command -v clang-20)"
+  export CXX="$(command -v clang++-20)"
+  echo "  Toolchain: system Clang 20"
+else
+  echo "  Toolchain: default (cc/c++)"
+fi
+
 echo "=== NovaART Build for Host ==="
 echo "  Build dir: $BUILD_DIR"
 echo "  Prefix:    $PREFIX"
