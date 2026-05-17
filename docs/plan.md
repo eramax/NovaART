@@ -246,7 +246,7 @@ These are direct passthroughs to desktop GL (same signatures).
 - [ ] **Step 4: Build and test with gles3jni**
 
 ```sh
-LD_LIBRARY_PATH=./output/lib ./output/bin/novaart gles3jni.apk
+LD_LIBRARY_PATH=./output/lib ./output/bin/novaart apks/gles3jni.apk
 ```
 
 Expected: Wayland window with rotating triangle.
@@ -327,8 +327,8 @@ Wayland keysym → Android keycode mapping.
 
 ```sh
 ./build.sh
-LD_LIBRARY_PATH=./output/lib ./output/bin/novaart gles3jni.apk
-LD_LIBRARY_PATH=./output/lib ./output/bin/novaart gd.apk
+LD_LIBRARY_PATH=./output/lib ./output/bin/novaart apks/gles3jni.apk
+LD_LIBRARY_PATH=./output/lib ./output/bin/novaart apks/gd.apk
 ```
 
 - [ ] **Step 3: Measure metrics** — binary size, RAM, startup time, FPS
