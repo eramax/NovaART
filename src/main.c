@@ -92,6 +92,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if (nova_art_init_render(state, win) != 0) {
+        fprintf(stderr, "Warning: Failed to initialize render system\n");
+    }
+
     printf("NovaART initialized. Entering event loop.\n");
 
     /* Event loop */

@@ -685,3 +685,32 @@ int nova_art_launch_apk(struct nova_state *state, const char *apk_path, const ch
     printf("[NovaART] Launch probe completed\n");
     return 0;
 }
+
+int nova_art_init_render(struct nova_state *state, struct nova_window *win) {
+    if (!state || !state->env || !win) {
+        return -1;
+    }
+
+    jclass canvas_render_class = (*state->env)->FindClass(state->env, "nova/internal/CanvasRender");
+    if (!canvas_render_class) {
+        return -1;
+    }
+
+    jmethodID set_state = (*state->env)->GetStaticMethodID(state->env, canvas_render_class,
+                                                           "setRenderState", "(J)V");
+    jmethodID set_window = (*state->env)->GetStaticMethodID(state->env, canvas_render_class,
+                                                            "setRenderWindow", "(J)V");
+
+    if (!set_state || !set_window) {
+        (*state->env)->DeleteLocalRef(state->env, canvas_render_class);
+        return -1;
+    }
+
+    (*state->env)->CallStaticVoidMethod(state->env, canvas_render_class, set_state,
+                                       (jlong)(intptr_t)state);
+    (*state->env)->CallStaticVoidMethod(state->env, canvas_render_class, set_window,
+                                       (jlong)(intptr_t)win);
+
+    (*state->env)->DeleteLocalRef(state->env, canvas_render_class);
+    return 0;
+}

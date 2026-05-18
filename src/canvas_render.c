@@ -158,3 +158,15 @@ int nova_canvas_render_submit(struct nova_canvas_render *render, struct nova_win
 struct nova_canvas *nova_canvas_render_get_canvas(struct nova_canvas_render *render) {
     return render ? render->canvas : NULL;
 }
+
+struct nova_bitmap *nova_canvas_render_get_backbuffer(struct nova_canvas_render *render) {
+    return render ? render->backbuffer : NULL;
+}
+
+int nova_canvas_render_get_width(struct nova_canvas_render *render) {
+    return render ? render->width : 0;
+}
+
+int nova_canvas_render_get_height(struct nova_canvas_render *render) {
+    return render ? render->height : 0;
+}

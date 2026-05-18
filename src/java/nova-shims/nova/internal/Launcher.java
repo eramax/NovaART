@@ -57,6 +57,7 @@ public final class Launcher {
         android.content.Context.novaSetCurrentPackageName(packageName);
         android.content.pm.NovaPackageManager.getInstance()
                 .setCurrentPackage(packageName, activityClass, apkPath);
+        android.content.res.ResourceManager.getInstance().setApkPath(apkPath);
 
         ClassLoader parent = Launcher.class.getClassLoader();
         ClassLoader loader = createDexClassLoader(

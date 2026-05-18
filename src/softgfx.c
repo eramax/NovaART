@@ -278,6 +278,13 @@ void nova_canvas_draw_rect(struct nova_canvas *canvas, float left, float top,
     }
 }
 
+void nova_canvas_draw_color(struct nova_canvas *canvas, uint32_t color) {
+    if (!canvas || !canvas->bitmap) {
+        return;
+    }
+    nova_bitmap_clear(canvas->bitmap, color);
+}
+
 int nova_canvas_save(struct nova_canvas *canvas, int save_flags) {
     (void)save_flags;
     if (!canvas) {

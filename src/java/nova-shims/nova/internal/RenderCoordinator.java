@@ -70,6 +70,7 @@ public final class RenderCoordinator {
     }
 
     private void renderLoop() {
+        int frameCount = 0;
         while (mRunning) {
             try {
                 synchronized (mLock) {
@@ -77,6 +78,10 @@ public final class RenderCoordinator {
                         mBackCanvas.drawColor(Color.WHITE);
                         mRootView.draw(mBackCanvas);
                         submitFrame();
+                        frameCount++;
+                        if (frameCount % 60 == 0) {
+                            Log.d(TAG, "Frames rendered: " + frameCount);
+                        }
                     }
                 }
 

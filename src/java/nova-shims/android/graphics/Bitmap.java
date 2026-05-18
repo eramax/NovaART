@@ -49,10 +49,19 @@ public class Bitmap {
         return nativeGetConfig(mNativePtr) == Config.ARGB_8888.nativeInt ? Config.ARGB_8888 : null;
     }
 
+    public int[] getPixels() {
+        int width = getWidth();
+        int height = getHeight();
+        int[] pixels = new int[width * height];
+        nativeGetPixels(mNativePtr, pixels);
+        return pixels;
+    }
+
     public static native long nativeCreate(int width, int height, boolean config, boolean mutable, long density);
     private native void nativeRecycle(long bitmapHandle);
     private native int nativeGetWidth(long bitmapHandle);
     private native int nativeGetHeight(long bitmapHandle);
     private native int nativeGetConfig(long bitmapHandle);
+    private native void nativeGetPixels(long bitmapHandle, int[] pixels);
     private static native long nativeGetNativeFinalizer();
 }

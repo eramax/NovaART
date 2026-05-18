@@ -6,8 +6,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.webkit.WebView;
+import android.util.Log;
 
 public class Activity extends Context {
+    private static final String TAG = "NovaActivity";
     private final Application mApplication = new Application();
     private final Window mWindow = new Window();
     private View mContentView;
@@ -55,6 +57,7 @@ public class Activity extends Context {
     }
 
     public void setContentView(View view) {
+        Log.d(TAG, "setContentView(View) called with " + (view != null ? view.getClass().getName() : "null"));
         if (mContentView != null) {
             mContentView.novaDetachFromWindow();
         }
@@ -65,7 +68,15 @@ public class Activity extends Context {
     }
 
     public void setContentView(int layoutResId) {
-        setContentView(new View(this));
+        Log.d(TAG, "setContentView(int) called with layoutResId=" + layoutResId);
+        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
+        View inflatedView = inflater.inflate(layoutResId, null);
+        if (inflatedView != null) {
+            setContentView(inflatedView);
+        } else {
+            Log.e(TAG, "Failed to inflate layout, using fallback");
+            setContentView(new View(this));
+        }
     }
 
     public View findViewById(int id) {
