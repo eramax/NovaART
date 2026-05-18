@@ -38,11 +38,12 @@ public final class Launcher {
             "/usr/lib64/libGLESv2.so"
     };
 
-    private Launcher() {}
+    private Launcher() {
+    }
 
     public static void launch(String apkPath, String activityClass, String packageName) throws Exception {
-        Thread.setDefaultUncaughtExceptionHandler((t, e) ->
-                System.err.println("[NovaLauncher] UNCAUGHT in " + t.getName() + ": " + e));
+        Thread.setDefaultUncaughtExceptionHandler(
+                (t, e) -> System.err.println("[NovaLauncher] UNCAUGHT in " + t.getName() + ": " + e));
 
         String androidData = System.getenv("ANDROID_DATA");
         File optimizedDir = new File(androidData == null ? "." : androidData, "dex");
@@ -119,7 +120,8 @@ public final class Launcher {
             if (isGLSurfaceView) {
                 System.out.println("[NovaLauncher] GLSurfaceView — GL thread drives rendering via requestRender");
             } else if (isTextureView) {
-                System.out.println("[NovaLauncher] TextureView — app drives rendering via lockCanvas/unlockCanvasAndPost");
+                System.out.println(
+                        "[NovaLauncher] TextureView — app drives rendering via lockCanvas/unlockCanvasAndPost");
             } else {
                 System.out.println("[NovaLauncher] Not GLSurfaceView/TextureView, starting Canvas render coordinator");
                 RenderCoordinator.getInstance().start(renderTarget, 960, 540);
@@ -131,21 +133,26 @@ public final class Launcher {
     private static android.view.View findRenderTarget(android.view.View root) {
         /* Prefer GLSurfaceView → TextureView → SurfaceView → root */
         android.view.View glsv = findByType(root, "android.opengl.GLSurfaceView");
-        if (glsv != null) return glsv;
+        if (glsv != null)
+            return glsv;
         android.view.View tv = findByType(root, "android.view.TextureView");
-        if (tv != null) return tv;
+        if (tv != null)
+            return tv;
         android.view.View sv = findByType(root, "android.view.SurfaceView");
-        if (sv != null) return sv;
+        if (sv != null)
+            return sv;
         return root;
     }
 
     private static android.view.View findByType(android.view.View v, String className) {
-        if (isClassOrSubclass(v.getClass(), className)) return v;
+        if (isClassOrSubclass(v.getClass(), className))
+            return v;
         if (v instanceof android.view.ViewGroup) {
             android.view.ViewGroup vg = (android.view.ViewGroup) v;
             for (int i = 0; i < vg.getChildCount(); i++) {
                 android.view.View found = findByType(vg.getChildAt(i), className);
-                if (found != null) return found;
+                if (found != null)
+                    return found;
             }
         }
         return null;
@@ -153,7 +160,8 @@ public final class Launcher {
 
     private static boolean isClassOrSubclass(Class<?> cls, String targetName) {
         while (cls != null) {
-            if (cls.getName().equals(targetName)) return true;
+            if (cls.getName().equals(targetName))
+                return true;
             cls = cls.getSuperclass();
         }
         return false;
@@ -175,8 +183,11 @@ public final class Launcher {
             ctor.setAccessible(true);
             Object appInstance = ctor.newInstance();
             System.out.println("[NovaLauncher] Application=" + appInstance.getClass().getName());
-            /* Try to set static singleton fields to this instance before calling onCreate,
-             * so any code that accesses getInstance() from within onCreate() finds the value. */
+            /*
+             * Try to set static singleton fields to this instance before calling onCreate,
+             * so any code that accesses getInstance() from within onCreate() finds the
+             * value.
+             */
             trySetStaticSingleton(appClass, appInstance);
             try {
                 Method onCreate = appClass.getMethod("onCreate");
@@ -192,12 +203,18 @@ public final class Launcher {
         }
     }
 
-    /* Scan the binary AndroidManifest for the application android:name attribute.
+    /*
+     * Scan the binary AndroidManifest for the application android:name attribute.
      * The binary manifest encodes strings in a string pool. We look for the
-     * package-prefixed class names next to the "android:name" attribute key. */
+     * package-prefixed class names next to the "android:name" attribute key.
+     */
     private static void trySetStaticSingleton(Class<?> appClass, Object appInstance) {
-        /* Many apps keep a static `sInstance` / `instance` / `mApp` field of the Application type.
-         * Set it before onCreate() so that code calling getInstance() from within onCreate() works. */
+        /*
+         * Many apps keep a static `sInstance` / `instance` / `mApp` field of the
+         * Application type.
+         * Set it before onCreate() so that code calling getInstance() from within
+         * onCreate() works.
+         */
         for (java.lang.reflect.Field f : appClass.getDeclaredFields()) {
             if (java.lang.reflect.Modifier.isStatic(f.getModifiers())
                     && f.getType().isAssignableFrom(appClass)) {
@@ -205,7 +222,8 @@ public final class Launcher {
                     f.setAccessible(true);
                     f.set(null, appInstance);
                     System.out.println("[NovaLauncher] Pre-set Application singleton field: " + f.getName());
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         }
     }
@@ -213,18 +231,22 @@ public final class Launcher {
     private static String findApplicationClassName(String apkPath) {
         try (ZipFile zip = new ZipFile(apkPath)) {
             ZipEntry entry = zip.getEntry("AndroidManifest.xml");
-            if (entry == null) return null;
+            if (entry == null)
+                return null;
             byte[] data;
             try (InputStream is = zip.getInputStream(entry)) {
                 java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
                 byte[] chunk = new byte[4096];
                 int n;
-                while ((n = is.read(chunk)) != -1) buf.write(chunk, 0, n);
+                while ((n = is.read(chunk)) != -1)
+                    buf.write(chunk, 0, n);
                 data = buf.toByteArray();
             }
-            /* The binary manifest string pool contains UTF-16LE strings.
+            /*
+             * The binary manifest string pool contains UTF-16LE strings.
              * We scan for a string that looks like a full Java class name
-             * containing 'Application' and the package structure. */
+             * containing 'Application' and the package structure.
+             */
             return extractApplicationNameFromManifest(data);
         } catch (IOException e) {
             System.out.println("[NovaLauncher] Cannot read manifest: " + e);
@@ -233,10 +255,12 @@ public final class Launcher {
     }
 
     private static String extractApplicationNameFromManifest(byte[] data) {
-        /* Scan for UTF-16LE strings that look like Application class names.
+        /*
+         * Scan for UTF-16LE strings that look like Application class names.
          * In binary XML, the string pool starts at offset 8 (after chunk header).
          * We take a simpler approach: scan for 16-bit sequences that form valid
-         * Java class names containing "Application". */
+         * Java class names containing "Application".
+         */
         StringBuilder cur = new StringBuilder();
         String best = null;
         for (int i = 0; i + 1 < data.length; i += 2) {
@@ -246,9 +270,13 @@ public final class Launcher {
                 cur.append((char) ch);
             } else {
                 String s = cur.toString();
-                /* Strip any leading numeric/non-identifier characters (length prefix in binary XML) */
+                /*
+                 * Strip any leading numeric/non-identifier characters (length prefix in binary
+                 * XML)
+                 */
                 int start = 0;
-                while (start < s.length() && !Character.isLetter(s.charAt(start))) start++;
+                while (start < s.length() && !Character.isLetter(s.charAt(start)))
+                    start++;
                 s = s.substring(start);
                 if (s.length() > 10 && s.contains("Application") && s.contains(".")) {
                     best = s;
@@ -269,7 +297,7 @@ public final class Launcher {
     }
 
     private static void invokeLifecycle(Class<?> activityClass, Object instance, String methodName,
-                                        Class<?>[] parameterTypes, Object[] args) throws Exception {
+            Class<?>[] parameterTypes, Object[] args) throws Exception {
         Method method = null;
         Class<?> cls = activityClass;
         while (cls != null && method == null) {
@@ -290,12 +318,12 @@ public final class Launcher {
     }
 
     private static void tryInvoke(Object target, String methodName,
-                                  Class<?>[] parameterTypes, Object[] args) throws Exception {
+            Class<?>[] parameterTypes, Object[] args) throws Exception {
         tryInvokeReturning(target, methodName, parameterTypes, args);
     }
 
     private static boolean tryInvokeReturning(Object target, String methodName,
-                                               Class<?>[] parameterTypes, Object[] args) throws Exception {
+            Class<?>[] parameterTypes, Object[] args) throws Exception {
         Method method;
         try {
             method = target.getClass().getMethod(methodName, parameterTypes);
@@ -356,7 +384,7 @@ public final class Launcher {
                 }
                 File outFile = new File(outputDir, entry.getName().substring(prefix.length()));
                 try (InputStream in = zip.getInputStream(entry);
-                     FileOutputStream out = new FileOutputStream(outFile)) {
+                        FileOutputStream out = new FileOutputStream(outFile)) {
                     in.transferTo(out);
                 }
                 System.out.println("[NovaLauncher] Extracted " + outFile.getName());
