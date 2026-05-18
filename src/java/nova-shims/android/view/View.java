@@ -7,6 +7,7 @@ import android.util.Log;
 public class View {
     private static final String TAG = "NovaView";
     private final Context mContext;
+    private final ViewTreeObserver mViewTreeObserver = new ViewTreeObserver();
     private boolean mAttached;
 
     public View(Context context) {
@@ -19,6 +20,10 @@ public class View {
 
     public Context getContext() {
         return mContext;
+    }
+
+    public ViewTreeObserver getViewTreeObserver() {
+        return mViewTreeObserver;
     }
 
     public final void novaAttachToWindow() {

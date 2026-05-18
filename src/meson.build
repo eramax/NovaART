@@ -67,11 +67,21 @@ novaart_sources = files(
   'egl.c',
 )
 
+softgfx_sources = files(
+  'softgfx.c',
+)
+
 novaart_inc = include_directories('.')
 host_compat_inc = include_directories('.', 'compat', '../third_party/gles3jni')
 
 shared_library('android',
   files('host_libandroid.c'),
+  name_prefix: 'lib',
+  install: true,
+  install_dir: 'lib')
+
+shared_library('OpenSLES',
+  files('host_libopensles.c'),
   name_prefix: 'lib',
   install: true,
   install_dir: 'lib')
@@ -100,7 +110,7 @@ shared_library('gles3jni',
   install_dir: 'lib')
 
 executable('novaart',
-  novaart_sources,
+  novaart_sources + softgfx_sources,
   xdg_shell_client_protocol_h,
   xdg_shell_protocol_c,
   xdg_decoration_client_protocol_h,
@@ -119,3 +129,8 @@ executable('novaart',
   include_directories: novaart_inc,
   install: true,
   install_dir: 'bin')
+
+executable('test-softgfx',
+  files('tests/test_softgfx.c') + softgfx_sources,
+  dependencies: [m],
+  include_directories: novaart_inc)

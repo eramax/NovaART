@@ -1,45 +1,44 @@
 #include "core_jni_helpers.h"
+#include "softgfx.h"
 
-/* android.graphics.Canvas — stubs */
 static jlong initRaster(JNIEnv *env, jobject, jlong bitmapHandle) {
-    log_unimplemented_jni("android.graphics.Canvas.initRaster");
-    (void)bitmapHandle;
-    return return_zero_handle();
+    (void)env;
+    return (jlong)(intptr_t)nova_canvas_create((struct nova_bitmap *)(intptr_t)bitmapHandle);
 }
 
 static void native_setBitmap(JNIEnv *env, jobject, jlong canvasHandle, jlong bitmapHandle) {
-    log_unimplemented_jni("android.graphics.Canvas.native_setBitmap");
-    (void)canvasHandle; (void)bitmapHandle;
+    (void)env;
+    nova_canvas_set_bitmap((struct nova_canvas *)(intptr_t)canvasHandle,
+                           (struct nova_bitmap *)(intptr_t)bitmapHandle);
 }
 
 static void native_drawRect(JNIEnv *env, jobject, jlong canvasHandle,
                              jfloat left, jfloat top, jfloat right, jfloat bottom,
                              jlong paintHandle) {
-    log_unimplemented_jni("android.graphics.Canvas.native_drawRect");
-    (void)canvasHandle; (void)left; (void)top; (void)right; (void)bottom; (void)paintHandle;
+    (void)env;
+    nova_canvas_draw_rect((struct nova_canvas *)(intptr_t)canvasHandle,
+                          left, top, right, bottom,
+                          (struct nova_paint *)(intptr_t)paintHandle);
 }
 
 static jint native_save(JNIEnv *env, jobject, jlong canvasHandle, jint saveFlags) {
-    log_unimplemented_jni("android.graphics.Canvas.native_save");
-    (void)canvasHandle; (void)saveFlags;
-    return 0;
+    (void)env;
+    return nova_canvas_save((struct nova_canvas *)(intptr_t)canvasHandle, saveFlags);
 }
 
 static void native_restore(JNIEnv *env, jobject, jlong canvasHandle) {
-    log_unimplemented_jni("android.graphics.Canvas.native_restore");
-    (void)canvasHandle;
+    (void)env;
+    nova_canvas_restore((struct nova_canvas *)(intptr_t)canvasHandle);
 }
 
 static jint native_getWidth(JNIEnv *env, jobject, jlong canvasHandle) {
-    log_unimplemented_jni("android.graphics.Canvas.native_getWidth");
-    (void)canvasHandle;
-    return 0;
+    (void)env;
+    return nova_canvas_width((struct nova_canvas *)(intptr_t)canvasHandle);
 }
 
 static jint native_getHeight(JNIEnv *env, jobject, jlong canvasHandle) {
-    log_unimplemented_jni("android.graphics.Canvas.native_getHeight");
-    (void)canvasHandle;
-    return 0;
+    (void)env;
+    return nova_canvas_height((struct nova_canvas *)(intptr_t)canvasHandle);
 }
 
 static const JNINativeMethod gMethods[] = {

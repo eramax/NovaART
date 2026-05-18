@@ -18,4 +18,5 @@ jni_sources = files(
 jni_stubs_lib = static_library('novaart_jni',
   jni_sources,
   dependencies: [dl, jni_dep],
+  include_directories: include_directories('..'),
   install: true)

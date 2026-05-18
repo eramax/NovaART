@@ -1,38 +1,38 @@
 #include "core_jni_helpers.h"
+#include "softgfx.h"
 
-/* android.graphics.Bitmap — stubs */
-static jlong nativeCreate(JNIEnv *env, jclass, jint width, jint height, jint config, jboolean mutable,
+static jlong nativeCreate(JNIEnv *env, jclass, jint width, jint height, jboolean config, jboolean mutable,
                            jlong density) {
-    log_unimplemented_jni("android.graphics.Bitmap.nativeCreate");
-    (void)width; (void)height; (void)config; (void)mutable; (void)density;
-    return return_zero_handle();
+    struct nova_bitmap *bitmap;
+
+    (void)env;
+    (void)density;
+    bitmap = nova_bitmap_create(width, height, config ? 1 : 0, mutable == JNI_TRUE);
+    return (jlong)(intptr_t)bitmap;
 }
 
 static void nativeRecycle(JNIEnv *env, jobject, jlong bitmapHandle) {
-    log_unimplemented_jni("android.graphics.Bitmap.nativeRecycle");
-    (void)bitmapHandle;
+    (void)env;
+    nova_bitmap_destroy((struct nova_bitmap *)(intptr_t)bitmapHandle);
 }
 
 static jint nativeGetWidth(JNIEnv *env, jobject, jlong bitmapHandle) {
-    log_unimplemented_jni("android.graphics.Bitmap.nativeGetWidth");
-    (void)bitmapHandle;
-    return 0;
+    (void)env;
+    return nova_bitmap_width((struct nova_bitmap *)(intptr_t)bitmapHandle);
 }
 
 static jint nativeGetHeight(JNIEnv *env, jobject, jlong bitmapHandle) {
-    log_unimplemented_jni("android.graphics.Bitmap.nativeGetHeight");
-    (void)bitmapHandle;
-    return 0;
+    (void)env;
+    return nova_bitmap_height((struct nova_bitmap *)(intptr_t)bitmapHandle);
 }
 
 static jint nativeGetConfig(JNIEnv *env, jobject, jlong bitmapHandle) {
-    log_unimplemented_jni("android.graphics.Bitmap.nativeGetConfig");
-    (void)bitmapHandle;
-    return 0;
+    (void)env;
+    return nova_bitmap_config((struct nova_bitmap *)(intptr_t)bitmapHandle);
 }
 
 static jlong nativeGetNativeFinalizer(JNIEnv *env, jclass) {
-    log_unimplemented_jni("android.graphics.Bitmap.nativeGetNativeFinalizer");
+    (void)env;
     return return_zero_handle();
 }
 

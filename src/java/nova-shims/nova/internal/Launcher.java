@@ -18,7 +18,8 @@ public final class Launcher {
     private static final String[] HOST_SUPPORT_LIBRARIES = {
             "libandroid.so",
             "liblog.so",
-            "libgles3jni.so"
+            "libgles3jni.so",
+            "libOpenSLES.so"
     };
     private static final String[][] HOST_COMPATIBILITY_LIBRARIES = {
             { "libc.so", "/lib/x86_64-linux-gnu/libc.so.6" },
@@ -38,7 +39,7 @@ public final class Launcher {
 
     private Launcher() {}
 
-    public static void launch(String apkPath, String activityClass) throws Exception {
+    public static void launch(String apkPath, String activityClass, String packageName) throws Exception {
         String androidData = System.getenv("ANDROID_DATA");
         File optimizedDir = new File(androidData == null ? "." : androidData, "dex");
         if (!optimizedDir.exists() && !optimizedDir.mkdirs()) {
@@ -49,8 +50,13 @@ public final class Launcher {
 
         System.out.println("[NovaLauncher] APK=" + apkPath);
         System.out.println("[NovaLauncher] Activity=" + activityClass);
+        System.out.println("[NovaLauncher] Package=" + packageName);
         System.out.println("[NovaLauncher] OptimizedDir=" + optimizedDir.getAbsolutePath());
         System.out.println("[NovaLauncher] NativeLibDir=" + nativeLibDir.getAbsolutePath());
+
+        android.content.Context.novaSetCurrentPackageName(packageName);
+        android.content.pm.NovaPackageManager.getInstance()
+                .setCurrentPackage(packageName, activityClass, apkPath);
 
         ClassLoader parent = Launcher.class.getClassLoader();
         ClassLoader loader = createDexClassLoader(

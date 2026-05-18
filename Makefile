@@ -2,7 +2,7 @@
 	run \
 	smoke-gles3jni test-framework test-stage-art test-stage-phase1 test-aidl \
 	test-launcher-native-libs test-host-android-shims test-host-gles3jni \
-	prepare-test-suite-apks prepare-deps export-deps-patches status-deps-patches
+	test-softgfx prepare-test-suite-apks prepare-deps export-deps-patches status-deps-patches
 
 ROOT := /mnt/mydata/projects2/qos/deps/NovaART
 APK ?= $(ROOT)/apks/gles3jni.apk
@@ -37,6 +37,7 @@ help:
 	  '  make test-launcher-native-libs Run APK native-lib staging verification' \
 	  '  make test-host-android-shims Run host Android shim verification' \
 	  '  make test-host-gles3jni  Run host gles3jni library verification' \
+	  '  make test-softgfx        Run software raster core verification' \
 	  '' \
 	  'Variables:' \
 	  '  APK=/abs/path/app.apk    Override APK for smoke-gles3jni' \
@@ -101,6 +102,9 @@ test-host-android-shims:
 
 test-host-gles3jni:
 	@cd "$(ROOT)" && bash ./scripts/test-host-gles3jni.sh
+
+test-softgfx:
+	@cd "$(ROOT)" && bash ./scripts/test-softgfx.sh
 
 prepare-test-suite-apks:
 	@cd "$(ROOT)" && bash ./scripts/download-test-apks.sh

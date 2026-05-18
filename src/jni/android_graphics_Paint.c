@@ -1,40 +1,39 @@
 #include "core_jni_helpers.h"
+#include "softgfx.h"
 
-/* android.graphics.Paint — stubs */
 static void native_setAntiAlias(JNIEnv *env, jobject, jlong paintHandle, jboolean aa) {
-    log_unimplemented_jni("android.graphics.Paint.native_setAntiAlias");
-    (void)paintHandle; (void)aa;
+    (void)env;
+    nova_paint_set_anti_alias((struct nova_paint *)(intptr_t)paintHandle, aa == JNI_TRUE);
 }
 
 static void native_setColor(JNIEnv *env, jobject, jlong paintHandle, jint color) {
-    log_unimplemented_jni("android.graphics.Paint.native_setColor");
-    (void)paintHandle; (void)color;
+    (void)env;
+    nova_paint_set_color((struct nova_paint *)(intptr_t)paintHandle, (uint32_t)color);
 }
 
 static void native_setStrokeWidth(JNIEnv *env, jobject, jlong paintHandle, jfloat width) {
-    log_unimplemented_jni("android.graphics.Paint.native_setStrokeWidth");
-    (void)paintHandle; (void)width;
+    (void)env;
+    nova_paint_set_stroke_width((struct nova_paint *)(intptr_t)paintHandle, width);
 }
 
 static void native_setStyle(JNIEnv *env, jobject, jlong paintHandle, jint style) {
-    log_unimplemented_jni("android.graphics.Paint.native_setStyle");
-    (void)paintHandle; (void)style;
+    (void)env;
+    nova_paint_set_style((struct nova_paint *)(intptr_t)paintHandle, style);
 }
 
 static jlong native_getNativeFinalizer(JNIEnv *env, jclass) {
-    log_unimplemented_jni("android.graphics.Paint.native_getNativeFinalizer");
+    (void)env;
     return return_zero_handle();
 }
 
 static jlong native_init(JNIEnv *env, jobject) {
-    log_unimplemented_jni("android.graphics.Paint.native_init");
-    return return_zero_handle();
+    (void)env;
+    return (jlong)(intptr_t)nova_paint_create();
 }
 
 static jlong native_initWithPaint(JNIEnv *env, jobject, jlong paintHandle) {
-    log_unimplemented_jni("android.graphics.Paint.native_initWithPaint");
-    (void)paintHandle;
-    return return_zero_handle();
+    (void)env;
+    return (jlong)(intptr_t)nova_paint_clone((struct nova_paint *)(intptr_t)paintHandle);
 }
 
 static const JNINativeMethod gMethods[] = {
