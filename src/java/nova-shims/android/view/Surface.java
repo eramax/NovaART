@@ -6,7 +6,12 @@ import android.graphics.Rect;
 import android.util.Log;
 import nova.internal.CanvasRender;
 
-public class Surface {
+public class Surface implements android.os.Parcelable {
+
+    public static final int ROTATION_0   = 0;
+    public static final int ROTATION_90  = 1;
+    public static final int ROTATION_180 = 2;
+    public static final int ROTATION_270 = 3;
     private static final String TAG = "NovaSurface";
     private boolean valid = true;
     private android.graphics.SurfaceTexture mSurfaceTexture;
@@ -52,7 +57,12 @@ public class Surface {
         return valid;
     }
 
-    public int describeContents() { return 0; }
+    @Override public int describeContents() { return 0; }
     public void readFromParcel(android.os.Parcel in) {}
-    public void writeToParcel(android.os.Parcel dest, int flags) {}
+    @Override public void writeToParcel(android.os.Parcel dest, int flags) {}
+
+    public static final android.os.Parcelable.Creator<Surface> CREATOR = new android.os.Parcelable.Creator<Surface>() {
+        @Override public Surface createFromParcel(android.os.Parcel in) { return new Surface(); }
+        @Override public Surface[] newArray(int size) { return new Surface[size]; }
+    };
 }

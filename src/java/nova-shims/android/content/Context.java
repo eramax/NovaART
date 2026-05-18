@@ -178,6 +178,11 @@ public abstract class Context {
     public abstract boolean isDeviceProtectedStorage();
     public abstract boolean moveDatabaseFrom(Context sourceContext, String name);
 
+    // Nova static helpers
+    private static String sCurrentPackageName;
+    public static void novaSetCurrentPackageName(String packageName) { sCurrentPackageName = packageName; }
+    public static String novaGetCurrentPackageName() { return sCurrentPackageName; }
+
     // Non-abstract helpers
     public <T> T getSystemService(Class<T> serviceClass) {
         Object s = getSystemService(getSystemServiceName(serviceClass));

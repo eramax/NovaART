@@ -95,8 +95,7 @@ public class AssetManager {
                 int n;
                 while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
             }
-            java.io.FileInputStream fis = new java.io.FileInputStream(tmp);
-            return new AssetFileDescriptor(fis, 0, tmp.length());
+            return new android.content.res.AssetFileDescriptor(new java.io.FileInputStream(tmp), 0, tmp.length());
         }
     }
 

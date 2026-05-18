@@ -103,4 +103,10 @@ public class AutoCompleteTextView {
     public void setThreshold(int p0) {}
     public void setValidator(android.widget.AutoCompleteTextView.Validator p0) {}
     public void showDropDown() {}
+
+    public interface OnDismissListener { void onDismiss(); }
+    public interface Validator {
+        boolean isValid(CharSequence text);
+        CharSequence fixText(CharSequence invalidText);
+    }
 }

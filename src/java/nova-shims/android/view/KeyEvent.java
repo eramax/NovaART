@@ -78,4 +78,20 @@ public class KeyEvent {
     }
 
     public static native int native_updateMetaState(int keyCode, boolean isDown, int metaState);
+
+    public static class DispatcherState {
+        public void reset() {}
+        public void reset(Object target) {}
+        public void startTracking(KeyEvent event, Object target) {}
+        public boolean isTracking(KeyEvent event) { return false; }
+        public void performedLongPress(KeyEvent event) {}
+        public void handleUpEvent(KeyEvent event) {}
+    }
+
+    public interface Callback {
+        boolean onKeyDown(int keyCode, KeyEvent event);
+        boolean onKeyLongPress(int keyCode, KeyEvent event);
+        boolean onKeyUp(int keyCode, KeyEvent event);
+        boolean onKeyMultiple(int keyCode, int count, KeyEvent event);
+    }
 }

@@ -106,4 +106,16 @@ public final class Parcel {
     public boolean hasFileDescriptors() { return false; }
     public boolean hasUnixFds() { return false; }
     public static void setAppOpsService(Object i) {}
+
+    public void enforceInterface(String interfaceName) {}
+    public void writeInterfaceToken(String interfaceName) {}
+    public String readInterfaceToken() { return readString(); }
+    public void writeChar(char val)   { mObjects.add(val); }
+    public char readChar()            { Object v = next(); return v instanceof Character ? (Character)v : 0; }
+    public void writeShort(short val) { mObjects.add(val); }
+    public short readShort()          { Object v = next(); return v instanceof Short ? (Short)v : 0; }
+    public <T extends Parcelable> void writeTypedObject(T val, int flags) { mObjects.add(val); }
+    @SuppressWarnings("unchecked")
+    public <T extends Parcelable> T readTypedObject(Parcelable.Creator<T> creator) { return (T) next(); }
+    public <T extends Parcelable> void writeTypedList(java.util.List<T> list, int flags) { mObjects.add(list != null ? new java.util.ArrayList<>(list) : null); }
 }

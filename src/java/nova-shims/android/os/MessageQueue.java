@@ -4,7 +4,7 @@ import java.util.LinkedList;
 
 public final class MessageQueue {
 
-    private final LinkedList<Message> mMessages = new LinkedList<>();
+    final LinkedList<Message> mMessages = new LinkedList<>();
     private boolean mQuitting;
     private java.util.List<IdleHandler> mIdleHandlers = new java.util.ArrayList<>();
     private java.util.List<OnFileDescriptorEventListener> mFileDescriptorListeners = new java.util.ArrayList<>();

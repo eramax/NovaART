@@ -4,7 +4,7 @@ public class RenderNode {
     public android.view.RenderNode create(java.lang.String p0, android.view.View p1) { return null; }
     public void destroyDisplayListData() {}
     public void discardDisplayList() {}
-    public void end(android.view.DisplayListCanvas p0) {}
+    public void end(android.graphics.Canvas p0) {}
     public float getAlpha() { return 0f; }
     public int getAmbientShadowColor() { return 0; }
     public float getCameraDistance() { return 0f; }
@@ -47,5 +47,5 @@ public class RenderNode {
     public boolean setSpotShadowColor(int p0) { return false; }
     public boolean setTranslationX(float p0) { return false; }
     public boolean setTranslationY(float p0) { return false; }
-    public android.view.DisplayListCanvas start(int p0, int p1) { return null; }
+    public android.graphics.Canvas start(int p0, int p1) { return null; }
 }

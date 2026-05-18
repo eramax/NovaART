@@ -1,6 +1,7 @@
 package android.app;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Display;
@@ -11,15 +12,16 @@ import android.webkit.WebView;
 import android.util.Log;
 import android.content.res.Configuration;
 
-public class Activity extends Context {
+public class Activity extends ContextWrapper {
     private static final String TAG = "NovaActivity";
-    private final Application mApplication = new Application();
-    private final Window mWindow = new Window();
+    private Application mApplication;
+    private final Window mWindow = new Window(this);
     private View mContentView;
     private boolean mFinished;
     private Intent mIntent;
 
     public Activity() {
+        super(null);
     }
 
     protected void onCreate(Bundle icicle) {

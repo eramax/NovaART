@@ -49,10 +49,19 @@ public class RemoteViews {
     public void setViewPadding(int p0, int p1, int p2, int p3, int p4) {}
     public void setViewVisibility(int p0, int p1) {}
 
+    public static class RemoteCollectionItems {
+        public static class Builder {
+            public Builder addItem(long id, RemoteViews view) { return this; }
+            public RemoteCollectionItems build() { return new RemoteCollectionItems(); }
+            public Builder setHasStableIds(boolean v) { return this; }
+            public Builder setViewTypeCount(int v) { return this; }
+        }
+    }
+
     public static class Builder {
-        public android.widget.RemoteViews.RemoteCollectionItems.Builder addItem(long p0, android.widget.RemoteViews p1) { return null; }
-        public android.widget.RemoteViews.RemoteCollectionItems build() { return null; }
-        public android.widget.RemoteViews.RemoteCollectionItems.Builder setHasStableIds(boolean p0) { return null; }
-        public android.widget.RemoteViews.RemoteCollectionItems.Builder setViewTypeCount(int p0) { return null; }
+        public RemoteCollectionItems.Builder addItem(long p0, RemoteViews p1) { return null; }
+        public RemoteCollectionItems build() { return null; }
+        public RemoteCollectionItems.Builder setHasStableIds(boolean p0) { return null; }
+        public RemoteCollectionItems.Builder setViewTypeCount(int p0) { return null; }
     }
 }
