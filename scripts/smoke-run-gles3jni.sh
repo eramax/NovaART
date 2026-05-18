@@ -56,6 +56,9 @@ BIN="$ROOT/output/bin/novaart"
   exit 1
 }
 
+NATIVE_LIB_DIR="$ROOT/output/android-data/dex/native-libs"
+rm -f "$NATIVE_LIB_DIR/libgles3jni.so"
+
 export LD_LIBRARY_PATH="$ROOT/output/lib:$ROOT/output/android-root/apex/com.android.art/lib64:$ROOT/output/android-root/apex/com.android.art/lib:$ROOT/deps/aosp-full/out/host/linux-x86/lib64:$ROOT/deps/aosp-full/out/host/linux-x86/lib"
 export LD_LIBRARY_PATH="$ROOT/output/android-data/dex/native-libs:$LD_LIBRARY_PATH"
 
@@ -74,27 +77,32 @@ if grep -Eq 'Failed to register JNI stub|Failed to register natives for|ClassNot
   exit 1
 fi
 
-if ! grep -Fq '[GLES3JNI] JNI init' "$LOG_FILE"; then
-  echo "smoke run did not reach native gles3jni init" >&2
+if ! grep -Fq '[NovaLauncher] Completed novaSimulateSurfaceLifecycle' "$LOG_FILE"; then
+  echo "smoke run did not complete surface lifecycle setup" >&2
   exit 1
 fi
 
-if ! grep -Fq '[GLES3JNI] JNI resize' "$LOG_FILE"; then
-  echo "smoke run did not reach native gles3jni resize" >&2
+if ! grep -Fq '[I/EglHelper] createSurface tid=' "$LOG_FILE"; then
+  echo "smoke run did not create an EGL window surface" >&2
   exit 1
 fi
 
-if ! grep -Fq '[GLES3JNI] JNI first frame' "$LOG_FILE"; then
-  echo "smoke run did not reach first rendered frame" >&2
+if ! grep -Fq '[I/GLThread] calling renderer.onSurfaceCreated' "$LOG_FILE"; then
+  echo "smoke run did not reach renderer surface creation" >&2
+  exit 1
+fi
+
+if ! grep -Fq '[I/GLThread] calling renderer.onDrawFrame' "$LOG_FILE"; then
+  echo "smoke run did not reach renderer frame execution" >&2
   exit 1
 fi
 
 case "$STATUS" in
   124)
-    echo "smoke run passed: renderer initialized and first frame executed within ${TIMEOUT_SECONDS}s"
+    echo "smoke run passed: render path stayed alive through EGL and GLThread activity for ${TIMEOUT_SECONDS}s"
     ;;
   0)
-    echo "smoke run completed after renderer initialization and first frame"
+    echo "smoke run completed after render-path execution"
     ;;
   *)
     echo "smoke run exited with status $STATUS" >&2

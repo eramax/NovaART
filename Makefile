@@ -1,4 +1,5 @@
 .PHONY: help build-host build-framework generate-aidl stage-phase1 stage-art build-host-art \
+	run \
 	smoke-gles3jni test-framework test-stage-art test-stage-phase1 test-aidl \
 	test-launcher-native-libs test-host-android-shims test-host-gles3jni \
 	prepare-test-suite-apks prepare-deps export-deps-patches status-deps-patches
@@ -6,6 +7,13 @@
 ROOT := /mnt/mydata/projects2/qos/deps/NovaART
 APK ?= $(ROOT)/apks/gles3jni.apk
 TIMEOUT ?= 8
+RUN_APK := $(word 2,$(MAKECMDGOALS))
+
+ifeq ($(firstword $(MAKECMDGOALS)),run)
+.PHONY: $(RUN_APK)
+%:
+	@:
+endif
 
 help:
 	@printf '%s\n' \
@@ -20,6 +28,7 @@ help:
 	  '  make prepare-deps        Apply curated dependency patches into deps/' \
 	  '  make export-deps-patches Refresh curated dependency patch files' \
 	  '  make status-deps-patches Show dependency patch application state' \
+	  '  make run /abs/path.apk   Run NovaART directly with the given APK path' \
 	  '  make smoke-gles3jni      Run the bounded gles3jni smoke test' \
 	  '  make test-framework      Run framework build verification' \
 	  '  make test-stage-art      Run ART staging verification' \
@@ -50,6 +59,15 @@ build-host-art:
 
 stage-art:
 	@cd "$(ROOT)" && bash ./scripts/stage-art.sh
+
+run:
+	@test -n "$(RUN_APK)" || { \
+		echo 'usage: make run /abs/path/to/app.apk' >&2; \
+		exit 1; \
+	}
+	@ROOT="$(ROOT)"; \
+	export LD_LIBRARY_PATH="$$ROOT/output/android-data/dex/native-libs:$$ROOT/output/lib:$$ROOT/output/android-root/apex/com.android.art/lib64:$$ROOT/output/android-root/apex/com.android.art/lib:$$ROOT/deps/aosp-full/out/host/linux-x86/lib64:$$ROOT/deps/aosp-full/out/host/linux-x86/lib"; \
+	"$$ROOT/output/bin/novaart" "$(RUN_APK)"
 
 prepare-deps:
 	@cd "$(ROOT)" && bash ./scripts/prepare-deps.sh apply
