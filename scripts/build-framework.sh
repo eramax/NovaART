@@ -111,10 +111,11 @@ CLASSES_DIR="$OUT_ROOT/classes"
 JAR_OUT="$OUT_ROOT/nova-framework-classes.jar"
 DEX_OUT="$OUT_ROOT/nova-framework-dex.jar"
 
+# Collect all sources: staged AOSP (real implementations) + Nova overrides + generated AIDL
+# nova-shims/ is listed AFTER aosp/ so that if the same class appears in both,
+# the build fails fast with a duplicate-class error rather than silently using the wrong one.
 find \
-  "$ROOT/src/java/aosp/android/opengl" \
-  "$ROOT/src/java/aosp/com/google/android/gles_jni" \
-  "$ROOT/src/java/aosp/javax/microedition" \
+  "$ROOT/src/java/aosp" \
   "$ROOT/src/java/nova-shims" \
   "$ROOT/src/generated/aidl/nova" \
   -type f -name '*.java' | sort > "$SOURCES_FILE"
