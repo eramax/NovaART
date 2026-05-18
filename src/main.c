@@ -83,6 +83,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if (nova_art_launch_apk(state, apk_path, activity_class) != 0) {
+        fprintf(stderr, "Failed to launch APK in ART runtime\n");
+        nova_egl_destroy(egl);
+        nova_art_shutdown(state);
+        nova_window_destroy(win);
+        nova_state_destroy(state);
+        return 1;
+    }
+
     printf("NovaART initialized. Entering event loop.\n");
 
     /* Event loop */

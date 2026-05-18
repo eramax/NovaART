@@ -3,6 +3,56 @@
 This is a hand-maintained engineering log. Entries record completed and verified
 milestones only.
 
+## 2026-05-18 11:36 CEST
+
+Milestone:
+- Reached real APK launch-path execution through activity lifecycle and
+  `GLSurfaceView` surface startup.
+
+Completed:
+- Added native APK launch probing with automatic activity discovery via `aapt2`:
+  - [src/art.c](/mnt/mydata/projects2/qos/deps/NovaART/src/art.c)
+  - [src/main.c](/mnt/mydata/projects2/qos/deps/NovaART/src/main.c)
+  - [src/nova.h](/mnt/mydata/projects2/qos/deps/NovaART/src/nova.h)
+- Added Java-side launch helper:
+  - [src/java/nova-shims/nova/internal/Launcher.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/nova/internal/Launcher.java)
+- Added the minimal app/view runtime shim layer needed to load and instantiate
+  `GLES3JNIActivity` and construct `GLES3JNIView`:
+  - [src/java/nova-shims/android/app/Activity.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/app/Activity.java)
+  - [src/java/nova-shims/android/app/Application.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/app/Application.java)
+  - [src/java/nova-shims/android/content/Context.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/content/Context.java)
+  - [src/java/nova-shims/android/os/Bundle.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/os/Bundle.java)
+  - [src/java/nova-shims/android/util/Log.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/util/Log.java)
+  - [src/java/nova-shims/android/util/AttributeSet.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/util/AttributeSet.java)
+  - [src/java/nova-shims/android/os/Trace.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/os/Trace.java)
+  - [src/java/nova-shims/android/view/View.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/View.java)
+  - [src/java/nova-shims/android/view/SurfaceHolder.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/SurfaceHolder.java)
+  - [src/java/nova-shims/android/view/SurfaceView.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/SurfaceView.java)
+  - [src/java/nova-shims/android/view/Surface.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/Surface.java)
+  - [src/java/nova-shims/javax/microedition/khronos/egl/EGL.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/javax/microedition/khronos/egl/EGL.java)
+- Added simulated `SurfaceView` lifecycle dispatch so `GLSurfaceView` starts its
+  render thread from the Nova stub side.
+- Tightened the smoke script to fail on render-thread native linkage errors:
+  - [scripts/smoke-run-gles3jni.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/smoke-run-gles3jni.sh)
+
+Verified:
+- `bash scripts/build-framework.sh`
+- `bash build-host.sh`
+- `bash scripts/smoke-run-gles3jni.sh --timeout 8`
+- Observed successful progression through:
+  - activity class load
+  - activity instantiation
+  - `onCreate()`
+  - `onResume()`
+  - `GLSurfaceView` content view creation
+  - simulated surface lifecycle
+  - render thread startup
+
+Next:
+- Implement the first EGL10 JNI bridge in `com.google.android.gles_jni.EGLImpl`.
+- Current first render-path blocker:
+  - `com.google.android.gles_jni.EGLImpl._nativeClassInit()`
+
 ## 2026-05-18 11:23 CEST
 
 Milestone:

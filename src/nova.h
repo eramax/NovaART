@@ -70,6 +70,7 @@ void nova_art_shutdown(struct nova_state *state);
 jclass nova_art_find_class(struct nova_state *state, const char *name);
 jmethodID nova_art_get_static_method(struct nova_state *state, jclass cls, const char *name, const char *sig);
 jmethodID nova_art_get_method(struct nova_state *state, jclass cls, const char *name, const char *sig);
+int nova_art_launch_apk(struct nova_state *state, const char *apk_path, const char *activity_class);
 
 /* JNI registration */
 int register_all_jni_stubs(JNIEnv *env);

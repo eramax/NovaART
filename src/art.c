@@ -44,6 +44,17 @@ static int file_exists(const char *path) {
     return path != NULL && access(path, F_OK) == 0;
 }
 
+static int jni_log_and_clear_exception(JNIEnv *env, const char *context) {
+    if (!(*env)->ExceptionCheck(env)) {
+        return 0;
+    }
+
+    fprintf(stderr, "[NovaART] Java exception during %s\n", context);
+    (*env)->ExceptionDescribe(env);
+    (*env)->ExceptionClear(env);
+    return -1;
+}
+
 static void dirname_inplace(char *path) {
     char *slash = strrchr(path, '/');
     if (slash == NULL) {
@@ -74,6 +85,64 @@ static void build_project_root(char *out, size_t out_size) {
     dirname_inplace(out);
     dirname_inplace(out);
     dirname_inplace(out);
+}
+
+static int detect_launchable_activity(const char *project_root, const char *apk_path,
+                                      char *out, size_t out_size) {
+    char aapt2_path[PATH_MAX];
+    char command[PATH_MAX * 2];
+    char line[1024];
+    FILE *fp;
+
+    snprintf(aapt2_path, sizeof(aapt2_path),
+             "%s/deps/aosp-full/prebuilts/sdk/tools/linux/bin/aapt2",
+             project_root);
+    if (!file_exists(aapt2_path)) {
+        fprintf(stderr, "[NovaART] aapt2 not found at %s\n", aapt2_path);
+        return -1;
+    }
+
+    snprintf(command, sizeof(command), "\"%s\" dump badging \"%s\" 2>/dev/null",
+             aapt2_path, apk_path);
+    fp = popen(command, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "[NovaART] Failed to run aapt2 for %s\n", apk_path);
+        return -1;
+    }
+
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        char *start;
+        char *end;
+
+        if (strncmp(line, "launchable-activity:", 20) != 0) {
+            continue;
+        }
+
+        start = strstr(line, "name='");
+        if (start == NULL) {
+            continue;
+        }
+        start += 6;
+        end = strchr(start, '\'');
+        if (end == NULL) {
+            continue;
+        }
+
+        if ((size_t)(end - start) >= out_size) {
+            pclose(fp);
+            fprintf(stderr, "[NovaART] Launchable activity name too long\n");
+            return -1;
+        }
+
+        memcpy(out, start, (size_t)(end - start));
+        out[end - start] = '\0';
+        pclose(fp);
+        return 0;
+    }
+
+    pclose(fp);
+    fprintf(stderr, "[NovaART] No launchable activity found in %s\n", apk_path);
+    return -1;
 }
 
 static void set_env_default(const char *key, const char *value) {
@@ -278,4 +347,61 @@ jmethodID nova_art_get_method(struct nova_state *state, jclass cls,
                                const char *name, const char *sig) {
     if (!state->env) return NULL;
     return (*state->env)->GetMethodID(state->env, cls, name, sig);
+}
+
+int nova_art_launch_apk(struct nova_state *state, const char *apk_path, const char *activity_class) {
+    char project_root[PATH_MAX];
+    char detected_activity[PATH_MAX];
+    const char *resolved_activity = activity_class;
+    jclass launcher_class;
+    jmethodID launch_method;
+    jstring apk_string;
+    jstring activity_string;
+
+    if (state == NULL || state->env == NULL || apk_path == NULL) {
+        return -1;
+    }
+
+    build_project_root(project_root, sizeof(project_root));
+    if (resolved_activity == NULL || resolved_activity[0] == '\0') {
+        if (detect_launchable_activity(project_root, apk_path,
+                                       detected_activity, sizeof(detected_activity)) != 0) {
+            return -1;
+        }
+        resolved_activity = detected_activity;
+    }
+
+    printf("[NovaART] Launch probe for APK: %s\n", apk_path);
+    printf("[NovaART] Launch target activity: %s\n", resolved_activity);
+
+    launcher_class = (*state->env)->FindClass(state->env, "nova/internal/Launcher");
+    if (launcher_class == NULL || jni_log_and_clear_exception(state->env, "FindClass(nova/internal/Launcher)") != 0) {
+        return -1;
+    }
+
+    launch_method = (*state->env)->GetStaticMethodID(
+        state->env, launcher_class, "launch",
+        "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (launch_method == NULL || jni_log_and_clear_exception(state->env, "GetStaticMethodID(Launcher.launch)") != 0) {
+        return -1;
+    }
+
+    apk_string = (*state->env)->NewStringUTF(state->env, apk_path);
+    if (apk_string == NULL || jni_log_and_clear_exception(state->env, "NewStringUTF(apk_path)") != 0) {
+        return -1;
+    }
+
+    activity_string = (*state->env)->NewStringUTF(state->env, resolved_activity);
+    if (activity_string == NULL || jni_log_and_clear_exception(state->env, "NewStringUTF(activity_class)") != 0) {
+        return -1;
+    }
+
+    (*state->env)->CallStaticVoidMethod(state->env, launcher_class, launch_method,
+                                        apk_string, activity_string);
+    if (jni_log_and_clear_exception(state->env, "Launcher.launch") != 0) {
+        return -1;
+    }
+
+    printf("[NovaART] Launch probe completed\n");
+    return 0;
 }

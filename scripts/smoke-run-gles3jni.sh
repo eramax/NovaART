@@ -68,7 +68,7 @@ set -e
 
 cat "$LOG_FILE"
 
-if grep -Eq 'Failed to register JNI stub|Failed to register natives for|ClassNotFoundException|NoSuchMethodError|Runtime aborting|Unable to initialize main class' "$LOG_FILE"; then
+if grep -Eq 'Failed to register JNI stub|Failed to register natives for|ClassNotFoundException|NoSuchMethodError|Runtime aborting|Unable to initialize main class|UnsatisfiedLinkError|No implementation found for|Exception in thread "GLThread' "$LOG_FILE"; then
   echo "smoke run hit a known bootstrap/runtime failure" >&2
   exit 1
 fi
