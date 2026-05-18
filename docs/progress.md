@@ -57,36 +57,28 @@ All 16 JNI stubs register successfully:
 - `com/google/android/gles_jni/GLImpl` (1 native method: `_nativeClassInit`)
 - `nova/canvas/render` (frame submission, vsync, input dispatch)
 
-### Phase 2: APK Launch — PARTIALLY WORKING (gles3jni)
+### Phase 2: APK Launch — ✅ WORKING (gles3jni + Pixel Dungeon)
 
-The gles3jni APK successfully:
-1. ✅ ART runtime initializes
-2. ✅ All 16 JNI stubs register
-3. ✅ EGL initializes (1.5)
-4. ✅ APK loaded via DexClassLoader
-5. ✅ Activity class resolved and instantiated
-6. ✅ `onCreate()` completes (GLSurfaceView created and setContentView'd)
-7. ✅ `onResume()` completes
-8. ✅ Surface lifecycle simulated (960×540)
-9. ✅ GLThread starts and becomes RUNNABLE
+**RTLD_DEEPBIND fix:** APK native libraries are loaded with `RTLD_DEEPBIND` via `LD_PRELOAD=libdeepbind_wrapper.so` (`src/compat/deepbind_wrapper.c`). This prevents the host system's `libGLESv2.so.2` from interposing GL function pointer variables in APK native code (which caused SIGSEGV).
 
-**Current blocker:** `gl3stubInit()` in `libgles3jni.so` crashes with SIGSEGV (SEGV_ACCERR). The function tries to write GL3 function pointers into a GOT entry that the dynamic linker resolved to the host system's read-only `libGLESv2.so.2` text segment instead of `libgles3jni.so`'s writable data section. This is a symbol collision between the host GL library and the APK's native code — the `glReadBuffer` etc. symbols get interposed by the system library.
+#### Working APKs
 
-**Backtrace:**
-```
-gl3stubInit+68 → Java_com_android_gles3jni_GLES3JNILib_init+268
-→ GLES3JNIView$Renderer.onSurfaceCreated
-→ GLSurfaceView$GLThread.guardedRun
-→ GLSurfaceView$GLThread.run
-```
+| APK | Status | Notes |
+|---|---|---|
+| `gles3jni.apk` | ✅ Full render | GL3 init → EGL surface → onDrawFrame loop, AMD Radeon via Mesa |
+| `com.watabou.pixeldungeon` | ✅ Full render | Noosa engine, GLSurfaceView, 8s rendering stable |
 
-### Phase 2: Other APKs
+#### APKs needing more stubs
 
 | APK | Status | Error |
 |---|---|---|
+| `Material Life` | 🔧 Working on it | `MaterialLifeApplication` class not found; cascading `Application` CNFE |
 | `2048.apk` | ❌ ClassNotFound | `android.view.Menu` missing |
-| `antimine.apk` | ❌ VerifyError | `AppCompatImageView` not instance of `android.view.View` — needs AppCompat shims |
+| `antimine.apk` | ❌ VerifyError | AppCompat hierarchy — needs AndroidX shims |
 | `simple-calculator.apk` | ❌ No launchable activity | Manifest parsing issue |
+| `KeePassDX` | ❌ ClassNotFound | Needs `android.os.Build$VERSION` (now added) |
+| `shattered-pixel-dungeon` | ❌ VerifyError | `FrameLayout$LayoutParams` vs `ViewGroup$LayoutParams` |
+| `mindustry` | ❌ VerifyError | Same LayoutParams hierarchy issue |
 
 ---
 
