@@ -56,6 +56,42 @@ Next:
 - Update smoke success criteria to match real render-path evidence instead of
   the old native log expectation.
 
+## 2026-05-18 16:39 CEST
+
+Milestone:
+- Closed the Phase 1 gate in the scoped sense defined by the current plan:
+  `gles3jni` launches and renders visibly on screen via the NovaART Wayland +
+  EGL + `GLSurfaceView` path.
+
+Completed:
+- Updated the bounded smoke test to reflect the real success criteria for the
+  current renderer path instead of obsolete native sample log markers:
+  - [scripts/smoke-run-gles3jni.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/smoke-run-gles3jni.sh)
+- Made repeated smoke runs reliable by clearing the staged
+  `libgles3jni.so` before relaunch.
+- Added direct operator invocation support:
+  - [Makefile](/mnt/mydata/projects2/qos/deps/NovaART/Makefile)
+    - `make run /abs/path/to.apk`
+
+Verified:
+- `bash /mnt/mydata/projects2/qos/deps/NovaART/scripts/smoke-run-gles3jni.sh --timeout 6`
+- result:
+  - `smoke run passed: render path stayed alive through EGL and GLThread activity for 6s`
+- visual confirmation remains true:
+  - `gles3jni` window appears and the triangle rotation is visible on screen
+
+Phase status:
+- **Phase 1: complete** for the scoped `gles3jni` host-native validation path
+- **Not implied complete:** general Android native `.so` execution
+  - `glmark2.apk` still fails on the known Bionic-vs-glibc ABI boundary
+  - that limitation is already explicitly deferred to the later native-library
+    phase in the plan
+
+Next:
+- Remove temporary deep debug logging from `Launcher` and `GLSurfaceView`.
+- Decide whether to keep `xdg-decoration` only or add a `libdecor` fallback for
+  compositors that ignore server-side decorations.
+
 ## 2026-05-18 16:16 CEST
 
 Milestone:
