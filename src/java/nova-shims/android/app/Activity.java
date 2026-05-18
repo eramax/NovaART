@@ -73,6 +73,91 @@ public class Activity extends ContextWrapper {
     @Override
     public String getSystemServiceName(Class<?> serviceClass) { return null; }
 
+    @Override
+    public android.content.pm.PackageManager getPackageManager() {
+        return android.content.pm.NovaPackageManager.getInstance();
+    }
+
+    @Override
+    public String getPackageName() {
+        return android.content.Context.novaGetCurrentPackageName();
+    }
+
+    @Override
+    public android.content.pm.ApplicationInfo getApplicationInfo() {
+        android.content.pm.PackageInfo pi = android.content.pm.NovaPackageManager.getInstance().getCurrentPackageInfo();
+        return pi != null ? pi.applicationInfo : new android.content.pm.ApplicationInfo();
+    }
+
+    @Override
+    public android.content.res.Resources getResources() { return new android.content.res.Resources(); }
+
+    @Override
+    public android.content.res.AssetManager getAssets() { return new android.content.res.AssetManager(); }
+
+    @Override
+    public android.os.Looper getMainLooper() { return android.os.Looper.getMainLooper(); }
+
+    @Override
+    public Context getApplicationContext() { return this; }
+
+    @Override
+    public void setTheme(int resid) {}
+
+    @Override
+    public android.content.res.Resources.Theme getTheme() { return null; }
+
+    @Override
+    public ClassLoader getClassLoader() { return getClass().getClassLoader(); }
+
+    @Override
+    public android.content.ContentResolver getContentResolver() { return new android.content.ContentResolver(); }
+
+    @Override
+    public String getPackageResourcePath() { return ""; }
+
+    @Override
+    public String getPackageCodePath() { return ""; }
+
+    @Override
+    public java.io.File getFilesDir() { return new java.io.File("/tmp/novaart/files"); }
+
+    @Override
+    public java.io.File getCacheDir() { return new java.io.File("/tmp/novaart/cache"); }
+
+    @Override
+    public java.io.File getDir(String name, int mode) { return new java.io.File("/tmp/novaart/" + name); }
+
+    @Override
+    public boolean checkPermission(String permission, int pid, int uid) { return true; }
+
+    @Override
+    public int checkSelfPermission(String permission) { return android.content.pm.PackageManager.PERMISSION_GRANTED; }
+
+    @Override
+    public void startActivity(Intent intent) { System.out.println("[NovaActivity] startActivity: " + intent); }
+
+    @Override
+    public void startActivity(Intent intent, Bundle options) { startActivity(intent); }
+
+    @Override
+    public void sendBroadcast(Intent intent) {}
+
+    @Override
+    public android.content.SharedPreferences getSharedPreferences(String name, int mode) {
+        return new android.content.NovaSharedPreferences(name);
+    }
+
+    @Override
+    public java.io.FileInputStream openFileInput(String name) throws java.io.FileNotFoundException {
+        throw new java.io.FileNotFoundException(name);
+    }
+
+    @Override
+    public java.io.FileOutputStream openFileOutput(String name, int mode) throws java.io.FileNotFoundException {
+        throw new java.io.FileNotFoundException(name);
+    }
+
     private final FragmentManager mFragmentManager = new FragmentManager.NovaFragmentManager();
 
     public FragmentManager getFragmentManager() { return mFragmentManager; }
@@ -124,6 +209,7 @@ public class Activity extends ContextWrapper {
             mContentView.novaDetachFromWindow();
         }
         mContentView = view;
+        mWindow.setContentView(view);
         if (mContentView != null) {
             mContentView.novaAttachToWindow();
         }

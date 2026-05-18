@@ -58,4 +58,8 @@ public final class NovaPackageManager extends PackageManager {
         }
         return mCurrentPackageInfo;
     }
+
+    public synchronized PackageInfo getCurrentPackageInfo() {
+        return mCurrentPackageInfo;
+    }
 }
