@@ -165,6 +165,12 @@ This is the current end-of-phase marker for the bootstrap/runtime bring-up
 slice. It proves NovaART is past early ART/classpath/JNI registration failure
 and into long-lived app/runtime execution.
 
+Operational helpers:
+- use [Makefile](/mnt/mydata/projects2/qos/deps/NovaART/Makefile) as the stable
+  operator surface for build/stage/smoke commands
+- append completed, verified milestones to
+  [progress.md](/mnt/mydata/projects2/qos/deps/NovaART/progress.md)
+
 ---
 
 ## Phase 1 Detailed Bill of Materials (gles3jni)
