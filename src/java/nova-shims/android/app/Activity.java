@@ -49,6 +49,30 @@ public class Activity extends ContextWrapper {
         return (WindowManager) getSystemService(Context.WINDOW_SERVICE);
     }
 
+    @Override
+    public Object getSystemService(String name) {
+        if (Context.WINDOW_SERVICE.equals(name)) {
+            return new WindowManager() {
+                private final Display mDefaultDisplay = new Display();
+                @Override public Display getDefaultDisplay() { return mDefaultDisplay; }
+                @Override public void addView(View view, android.view.ViewGroup.LayoutParams params) {}
+                @Override public void updateViewLayout(View view, android.view.ViewGroup.LayoutParams params) {}
+                @Override public void removeView(View view) {}
+                @Override public void removeViewImmediate(View view) {}
+            };
+        }
+        if (Context.LAYOUT_INFLATER_SERVICE.equals(name)) {
+            return android.view.LayoutInflater.from(this);
+        }
+        if (Context.POWER_SERVICE.equals(name) || Context.DISPLAY_SERVICE.equals(name)) {
+            return null;
+        }
+        return null;
+    }
+
+    @Override
+    public String getSystemServiceName(Class<?> serviceClass) { return null; }
+
     private final FragmentManager mFragmentManager = new FragmentManager.NovaFragmentManager();
 
     public FragmentManager getFragmentManager() { return mFragmentManager; }

@@ -62,6 +62,13 @@ rm -f "$NATIVE_LIB_DIR/libgles3jni.so"
 export LD_LIBRARY_PATH="$ROOT/output/lib:$ROOT/output/android-root/apex/com.android.art/lib64:$ROOT/output/android-root/apex/com.android.art/lib:$ROOT/deps/aosp-full/out/host/linux-x86/lib64:$ROOT/deps/aosp-full/out/host/linux-x86/lib"
 export LD_LIBRARY_PATH="$ROOT/output/android-data/dex/native-libs:$LD_LIBRARY_PATH"
 
+# RTLD_DEEPBIND wrapper: prevents host GL symbols from overwriting APK native
+# library function pointers (fixes gl3stubInit SIGSEGV)
+DEEPBIND_LIB="$ROOT/output/lib/libdeepbind_wrapper.so"
+if [ -f "$DEEPBIND_LIB" ]; then
+  export LD_PRELOAD="$DEEPBIND_LIB"
+fi
+
 LOG_FILE="$(mktemp)"
 trap 'rm -f "$LOG_FILE"' EXIT
 

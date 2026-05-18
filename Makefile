@@ -68,6 +68,8 @@ run:
 	}
 	@ROOT="$(ROOT)"; \
 	export LD_LIBRARY_PATH="$$ROOT/output/android-data/dex/native-libs:$$ROOT/output/lib:$$ROOT/output/android-root/apex/com.android.art/lib64:$$ROOT/output/android-root/apex/com.android.art/lib:$$ROOT/deps/aosp-full/out/host/linux-x86/lib64:$$ROOT/deps/aosp-full/out/host/linux-x86/lib"; \
+	DEEPBIND="$$ROOT/output/lib/libdeepbind_wrapper.so"; \
+	test -f "$$DEEPBIND" && export LD_PRELOAD="$$DEEPBIND"; \
 	"$$ROOT/output/bin/novaart" "$(RUN_APK)"
 
 prepare-deps:
