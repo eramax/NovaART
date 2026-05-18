@@ -112,4 +112,20 @@ public class Paint {
     private static native long native_getNativeFinalizer();
     private native long native_init();
     private native long native_initWithPaint(long paintHandle);
+
+    public static class FontMetrics {
+        public float top;
+        public float ascent;
+        public float descent;
+        public float bottom;
+        public float leading;
+    }
+
+    public static class FontMetricsInt {
+        public int top;
+        public int ascent;
+        public int descent;
+        public int bottom;
+        public int leading;
+    }
 }

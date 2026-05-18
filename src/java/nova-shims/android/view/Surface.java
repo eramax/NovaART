@@ -6,7 +6,7 @@ import android.graphics.Rect;
 import android.util.Log;
 import nova.internal.CanvasRender;
 
-public class Surface implements android.os.Parcelable {
+public class Surface {
     private static final String TAG = "NovaSurface";
     private boolean valid = true;
     private android.graphics.SurfaceTexture mSurfaceTexture;
@@ -52,27 +52,7 @@ public class Surface implements android.os.Parcelable {
         return valid;
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    public void readFromParcel(android.os.Parcel in) {
-    }
-
-    @Override
-    public void writeToParcel(android.os.Parcel dest, int flags) {
-    }
-
-    public static final Creator<Surface> CREATOR = new Creator<>() {
-        @Override
-        public Surface createFromParcel(android.os.Parcel source) {
-            return new Surface();
-        }
-
-        @Override
-        public Surface[] newArray(int size) {
-            return new Surface[size];
-        }
-    };
+    public int describeContents() { return 0; }
+    public void readFromParcel(android.os.Parcel in) {}
+    public void writeToParcel(android.os.Parcel dest, int flags) {}
 }

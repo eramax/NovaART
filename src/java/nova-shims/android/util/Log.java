@@ -1,36 +1,27 @@
 package android.util;
 
-public final class Log {
-    private Log() {}
+public class Log {
+    public static final int VERBOSE = 2;
+    public static final int DEBUG   = 3;
+    public static final int INFO    = 4;
+    public static final int WARN    = 5;
+    public static final int ERROR   = 6;
+    public static final int ASSERT  = 7;
 
-    public static int d(String tag, String msg) {
-        System.out.println("[D/" + tag + "] " + msg);
-        return 0;
-    }
-
-    public static int v(String tag, String msg) {
-        System.out.println("[V/" + tag + "] " + msg);
-        return 0;
-    }
-
-    public static int i(String tag, String msg) {
-        System.out.println("[I/" + tag + "] " + msg);
-        return 0;
-    }
-
-    public static int w(String tag, String msg) {
-        System.out.println("[W/" + tag + "] " + msg);
-        return 0;
-    }
-
-    public static int e(String tag, String msg) {
-        System.err.println("[E/" + tag + "] " + msg);
-        return 0;
-    }
-
-    public static int e(String tag, String msg, Throwable tr) {
-        System.err.println("[E/" + tag + "] " + msg);
-        tr.printStackTrace(System.err);
-        return 0;
-    }
+    public static int v(String tag, String msg) { System.out.println("[V/" + tag + "] " + msg); return 0; }
+    public static int v(String tag, String msg, Throwable tr) { System.out.println("[V/" + tag + "] " + msg + " " + tr); return 0; }
+    public static int d(String tag, String msg) { System.out.println("[D/" + tag + "] " + msg); return 0; }
+    public static int d(String tag, String msg, Throwable tr) { System.out.println("[D/" + tag + "] " + msg + " " + tr); return 0; }
+    public static int i(String tag, String msg) { System.out.println("[I/" + tag + "] " + msg); return 0; }
+    public static int i(String tag, String msg, Throwable tr) { System.out.println("[I/" + tag + "] " + msg + " " + tr); return 0; }
+    public static int w(String tag, String msg) { System.out.println("[W/" + tag + "] " + msg); return 0; }
+    public static int w(String tag, String msg, Throwable tr) { System.out.println("[W/" + tag + "] " + msg + " " + tr); return 0; }
+    public static int e(String tag, String msg) { System.err.println("[E/" + tag + "] " + msg); return 0; }
+    public static int e(String tag, String msg, Throwable tr) { System.err.println("[E/" + tag + "] " + msg + " " + tr); return 0; }
+    public static int wtf(String tag, String msg) { System.err.println("[WTF/" + tag + "] " + msg); return 0; }
+    public static int wtf(String tag, String msg, Throwable tr) { System.err.println("[WTF/" + tag + "] " + msg + " " + tr); return 0; }
+    public static int wtf(String tag, Throwable tr) { System.err.println("[WTF/" + tag + "] " + tr); return 0; }
+    public static int println(int priority, String tag, String msg) { System.out.println("[" + priority + "/" + tag + "] " + msg); return 0; }
+    public static String getStackTraceString(Throwable tr) { if (tr == null) return ""; java.io.StringWriter sw = new java.io.StringWriter(); tr.printStackTrace(new java.io.PrintWriter(sw)); return sw.toString(); }
+    public static boolean isLoggable(String tag, int level) { return true; }
 }

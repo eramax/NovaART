@@ -197,4 +197,12 @@ public class View {
         new android.os.Handler().postDelayed(action, delayMillis);
     }
     public void removeCallbacks(Runnable action) {}
+    public void setOnApplyWindowInsetsListener(OnApplyWindowInsetsListener listener) {}
+    public void setAccessibilityDelegate(AccessibilityDelegate delegate) {}
+
+    public static class AccessibilityDelegate {}
+
+    public interface OnApplyWindowInsetsListener {
+        android.view.WindowInsets onApplyWindowInsets(View v, android.view.WindowInsets insets);
+    }
 }

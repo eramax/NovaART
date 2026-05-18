@@ -86,4 +86,12 @@ public class Resources {
             super(message);
         }
     }
+
+    public static class Theme {
+        public void applyStyle(int resId, boolean force) {}
+        public android.content.res.TypedArray obtainStyledAttributes(int[] attrs) { return null; }
+        public android.content.res.TypedArray obtainStyledAttributes(int resId, int[] attrs) { return null; }
+        public android.content.res.TypedArray obtainStyledAttributes(android.util.AttributeSet set, int[] attrs, int defStyleAttr, int defStyleRes) { return null; }
+        public Resources getResources() { return null; }
+    }
 }
