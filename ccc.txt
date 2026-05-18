@@ -1,0 +1,15 @@
+  cd /mnt/mydata/projects2/qos/deps/NovaART/deps/aosp-full
+  source build/envsetup.sh
+  banchan com.android.art x86_64
+  m com.android.art -j"$(nproc)"
+
+
+aosp-framework-src git:(master) ✗  cd /mnt/mydata/projects2/qos/deps/NovaART/deps/aosp-framework-src && \
+  repo sync -c -j8 \
+    frameworks/base \
+    external/skia \
+    external/freetype \
+    external/harfbuzz_ng \
+    external/libpng \
+    external/icu
+

@@ -45,11 +45,28 @@ at startup.
 
 ### 0.1 Build ART + bootclasspath from AOSP
 
+Important: this must be done from a clean `master-art`-aligned checkout state.
+Do not sync `frameworks/base` into the active ART build tree before this step.
+If `frameworks/base/Android.bp` is present, AOSP flips unbundled ART builds
+from prebuilt SDK mode to source SDK mode (`UNBUNDLED_BUILD_SDKS_FROM_SOURCE=true`),
+which expands the dependency graph dramatically and defeats the thin-manifest
+assumption.
+
+For the exact command sequence used to reproduce the current `master-art`
+sync/build flow, see `scripts/repro-sync-art.sh`.
+
 ```sh
 cd deps/aosp-full
 source build/envsetup.sh
 banchan com.android.art x86_64
-m apps_only dist -j$(nproc)
+
+# First try the narrow build without `dist`. NovaART Stage 0 needs host-side
+# ART outputs, not the distributed packaging artifacts.
+m com.android.art -j$(nproc)
+
+# If the APEX packaging itself is needed later, try:
+# m apps_only -j$(nproc)
+# Avoid `dist` unless the tree is known-clean for metadata/licensing targets.
 ```
 
 Produces:
@@ -65,20 +82,45 @@ Produces:
 - `out/soong/host/linux-x86_64/com.android.art/framework/core.art`
 - `out/soong/host/linux-x86_64/com.android.art/framework/core.oat`
 
-### 0.2 Sync additional AOSP repos
+### 0.2 Create framework-source worktree
 
-A local manifest at `.repo/local_manifests/novaart.xml` has been added to
-sync `frameworks/base/`, `external/skia`, `external/freetype`,
-`external/harfbuzz`, `external/libpng`, and `external/icu`.
+A second AOSP working tree should be used for framework source acquisition.
+Keep `deps/aosp-full` reserved for the known-good ART build state on
+`master-art`.
+
+Use a second repo client for framework sources. The client should be created
+with repo's experimental `--worktree` mode:
+
+- `deps/aosp-full` → ART build tree (`master-art`)
+- `deps/aosp-framework-src` → framework source tree
+
+For the exact command sequence, see `scripts/repro-framework-source-worktree.sh`.
 
 ```sh
 cd deps/aosp-full
-repo sync -j8 frameworks/base external/skia external/freetype \
-  external/harfbuzz external/libpng external/icu
+mkdir -p ../aosp-framework-src
+cd ../aosp-framework-src
+
+repo init --worktree --partial-clone --no-use-superproject \
+  -b android-latest-release \
+  -u https://android.googlesource.com/platform/manifest
+
+repo sync -c -j$(nproc) \
+  frameworks/base external/skia external/freetype \
+  external/harfbuzz_ng external/libpng external/icu
 ```
 
-~400MB for frameworks/base alone. Contains the real android.* Java source
+~400MB for frameworks/base alone. Contains the real `android.*` Java source
 under `core/java/android/`. Licensed Apache 2.0.
+
+Recommended workflow:
+- Stage 0.1: build ART from a clean `master-art` checkout state first
+- Stage 0.2: populate `deps/aosp-framework-src` for framework source extraction
+- Use `deps/aosp-framework-src` as source input only
+- Do not run the ART Stage 0 build in `deps/aosp-framework-src`
+- Do not reintroduce `frameworks/base` into `deps/aosp-full`
+- Stage 0.3: stage the minimal Phase 1 source batch into NovaART with
+  `scripts/stage-phase1-framework-sources.sh`
 
 To sync everything at once: `repo sync -j$(nproc)`
 
@@ -218,9 +260,13 @@ Step 1: Build ART + bootclasspath
 
 Step 2: Compile Nova framework overlay
   a) Generate Java from AIDL files (IWindowManager, IWindowSession, IDisplayManager, IPackageManager)
-  b) javac selected AOSP sources + Nova forked classes + AIDL-generated code
-     bootclasspath: core-oj.jar + core-libart.jar
-  c) d8 → nova-framework.jar
+  b) javac the minimal Phase 1 overlay surface:
+     - staged OpenGL/EGL Java wrappers
+     - generated slim Binder stubs
+     - Nova-owned hidden-API shims under src/java/nova-shims/
+     Keep large staged framework files (android.os, pm, view internals) as source
+     provenance and future fork material, not mandatory compile input.
+  c) d8 → nova-framework-dex.jar
   d) dex2oat → nova-framework.oat (optional)
 
 Step 3: Build NovaART native code
@@ -315,6 +361,7 @@ Step C:  ART bootstrap (art.c + JNI_CreateJavaVM) → JavaVM running
 Step D:  MessageQueue JNI (nativePollOnce/Wake + epoll) → Looper works
 Step E:  AIDL stub codegen + service stubs (IWindowSession, IPackageManager, etc.)
 Step F:  Framework compile (AOSP sources + Nova forks + AIDL stubs → nova-framework.jar)
+         Current reproducible script: scripts/build-framework.sh
 Step G:  Surface JNI + EGL10 JNI → gles3jni rendering → PHASE 1 GATE
 Step H:  Skia build + Canvas JNI + wl_shm pool → PHASE 2 GATE
 Step I:  Service stub expansion + MicroG stubs → PHASE 3 GATE
@@ -334,8 +381,9 @@ Step I:  Service stub expansion + MicroG stubs → PHASE 3 GATE
 | `deps/NovaART/src/window.c` | Nova window objects backing IWindowSession |
 | `deps/NovaART/src/jni_registration.c` | Register all Nova/AOSP-adapted JNI methods |
 | `deps/NovaART/src/java/nova/` | Nova-owned Java: ActivityThread, WindowManager*, service stubs, ApkLoader |
+| `deps/NovaART/src/java/nova-shims/` | Minimal hidden-API/parcelable shims required to compile the Phase 1 overlay cleanly |
 | `deps/NovaART/src/java/aosp-forks/` | Forked AOSP choke points: Activity, ViewRootImpl, SurfaceView, PhoneWindow, etc. |
-| `deps/NovaART/scripts/build-framework.sh` | javac + d8 pipeline: AOSP sources + Nova forks + AIDL stubs → nova-framework.jar |
+| `deps/NovaART/scripts/build-framework.sh` | javac + d8 pipeline for the minimal Phase 1 overlay → nova-framework-classes.jar + nova-framework-dex.jar |
 | `deps/NovaART/scripts/stage-art.sh` | Copy ART artifacts from AOSP banchan build to output/ |
 | `deps/NovaART/apks/` | Test APKs: gles3jni, 2048, gd, retrobreaker, aptoide
 
@@ -344,6 +392,7 @@ Step I:  Service stub expansion + MicroG stubs → PHASE 3 GATE
 | Risk | Likelihood | Mitigation |
 |---|---|---|
 | frameworks/base/ has circular deps | **High** | Use AOSP `make framework` as fallback to produce framework.jar, then extract; manual `javac` ordering only after dependency graph is mapped |
+| Minimal overlay drifts back toward full staged-source compile | High | Keep `scripts/build-framework.sh` source list explicit and add shims for hidden types instead of widening the source set by default |
 | SurfaceControl/BLAST expected by ViewRootImpl | **High** | Fork `SurfaceView` + `ViewRootImpl` to bypass SurfaceControl/BLAST entirely; call `window.c` directly for Wayland surface creation |
 | ART can't load nova-framework.jar | Low | Bootclasspath loading is ART's core function |
 | Binder stubs don't cover all call paths | Medium | Monitor logs, add stub methods as crashes appear. `transact()` path is well-defined AIDL boundary |

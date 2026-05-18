@@ -5,7 +5,7 @@ output/
 # AOSP checkout (user syncs separately)
 aosp/
 deps/aosp-full/
-
+deps/aosp-framework-src
 # Compiled objects
 *.o
 *.so
