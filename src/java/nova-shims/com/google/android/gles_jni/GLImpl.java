@@ -9,6 +9,7 @@ import java.nio.Buffer;
 
 @SuppressWarnings("all")
 public class GLImpl implements GL10, GL11 {
+    private static native void _nativeClassInit();
     public void glActiveTexture(int texture) {}
     public void glAlphaFunc(int func, float ref) {}
     public void glAlphaFuncx(int func, int ref) {}

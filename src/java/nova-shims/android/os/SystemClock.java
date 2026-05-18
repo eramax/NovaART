@@ -4,16 +4,18 @@ public final class SystemClock {
 
     private SystemClock() {}
 
-    public static long uptimeMillis() { return System.nanoTime() / 1_000_000L; }
-    public static long elapsedRealtime() { return System.nanoTime() / 1_000_000L; }
-    public static long elapsedRealtimeNanos() { return System.nanoTime(); }
-    public static long currentThreadTimeMillis() { return Thread.currentThread().getId(); }
-    public static long currentGnssTimeClock() { return System.currentTimeMillis(); }
+    public static native long now();
+    public static native long uptimeMillis();
+    public static native long elapsedRealtime();
+    public static native long elapsedRealtimeNanos();
+    public static native long currentThreadTimeMillis();
+    public static native long currentThreadTimeMicro();
+    public static native long currentTimeMicro();
 
     public static boolean sleep(long ms) {
         try { Thread.sleep(ms); return true; }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); return false; }
     }
 
-    public static java.time.Clock currentGnssTimeClock(int type) { return java.time.Clock.systemUTC(); }
+    public static java.time.Clock currentGnssTimeClock() { return java.time.Clock.systemUTC(); }
 }

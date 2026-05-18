@@ -51,6 +51,11 @@ public class Binder implements IBinder {
     @Override public void linkToDeath(DeathRecipient recipient, int flags) throws RemoteException {}
     @Override public boolean unlinkToDeath(DeathRecipient recipient, int flags) { return true; }
 
+    public static native void blockUntilThreadAvailable();
+    private static native long getNativeBBinderHolder();
+    private static native long getNativeFinalizer();
+    private native void destroy(long nativeData);
+
     public static void allowBlocking(IBinder binder) {}
     public static IBinder withStrictModePolicy(IBinder binder, int policy) { return binder; }
 
