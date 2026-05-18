@@ -90,12 +90,20 @@ public final class Launcher {
         Object contentView = getContentView.invoke(instance);
         if (contentView != null) {
             System.out.println("[NovaLauncher] ContentView=" + contentView.getClass().getName());
+            android.view.View viewInstance = (android.view.View) contentView;
+            ViewDispatcher.setRootView(viewInstance);
+
             logGlThreadState(contentView);
             tryInvoke(contentView, "novaAttachToWindow", new Class<?>[0], new Object[0]);
             tryInvoke(contentView, "novaSimulateSurfaceLifecycle",
                     new Class<?>[] { int.class, int.class },
                     new Object[] { 960, 540 });
-            tryInvoke(contentView, "requestRender", new Class<?>[0], new Object[0]);
+
+            boolean isGLSurfaceView = tryInvokeReturning(contentView, "requestRender", new Class<?>[0], new Object[0]);
+            if (!isGLSurfaceView) {
+                System.out.println("[NovaLauncher] Not GLSurfaceView, starting Canvas render coordinator");
+                RenderCoordinator.getInstance().start(viewInstance, 960, 540);
+            }
             logGlThreadState(contentView);
         }
     }
@@ -111,7 +119,19 @@ public final class Launcher {
 
     private static void invokeLifecycle(Class<?> activityClass, Object instance, String methodName,
                                         Class<?>[] parameterTypes, Object[] args) throws Exception {
-        Method method = activityClass.getDeclaredMethod(methodName, parameterTypes);
+        Method method = null;
+        Class<?> cls = activityClass;
+        while (cls != null && method == null) {
+            try {
+                method = cls.getDeclaredMethod(methodName, parameterTypes);
+            } catch (NoSuchMethodException e) {
+                cls = cls.getSuperclass();
+            }
+        }
+        if (method == null) {
+            System.out.println("[NovaLauncher] Method not found: " + methodName);
+            return;
+        }
         method.setAccessible(true);
         System.out.println("[NovaLauncher] Calling " + methodName);
         method.invoke(instance, args);
@@ -120,16 +140,22 @@ public final class Launcher {
 
     private static void tryInvoke(Object target, String methodName,
                                   Class<?>[] parameterTypes, Object[] args) throws Exception {
+        tryInvokeReturning(target, methodName, parameterTypes, args);
+    }
+
+    private static boolean tryInvokeReturning(Object target, String methodName,
+                                               Class<?>[] parameterTypes, Object[] args) throws Exception {
         Method method;
         try {
             method = target.getClass().getMethod(methodName, parameterTypes);
         } catch (NoSuchMethodException e) {
             System.out.println("[NovaLauncher] No method " + methodName + " on " + target.getClass().getName());
-            return;
+            return false;
         }
         System.out.println("[NovaLauncher] Calling " + methodName);
         method.invoke(target, args);
         System.out.println("[NovaLauncher] Completed " + methodName);
+        return true;
     }
 
     private static void logClass(String className, ClassLoader loader) {

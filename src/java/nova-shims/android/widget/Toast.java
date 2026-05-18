@@ -20,6 +20,10 @@ public class Toast {
         return new Toast(context, text, duration);
     }
 
+    public static Toast makeText(Context context, int resId, int duration) {
+        return new Toast(context, "", duration);
+    }
+
     public void show() {
     }
 }

@@ -21,6 +21,12 @@ static void native_drawRect(JNIEnv *env, jobject, jlong canvasHandle,
                           (struct nova_paint *)(intptr_t)paintHandle);
 }
 
+static void native_drawColor(JNIEnv *env, jobject, jlong canvasHandle, jint color) {
+    (void)env;
+    (void)canvasHandle;
+    (void)color;
+}
+
 static jint native_save(JNIEnv *env, jobject, jlong canvasHandle, jint saveFlags) {
     (void)env;
     return nova_canvas_save((struct nova_canvas *)(intptr_t)canvasHandle, saveFlags);
@@ -45,6 +51,7 @@ static const JNINativeMethod gMethods[] = {
     { "initRaster",    "(J)J",                         (void*)initRaster },
     { "native_setBitmap", "(JJ)V",                     (void*)native_setBitmap },
     { "native_drawRect",  "(JFFFFJ)V",                 (void*)native_drawRect },
+    { "native_drawColor", "(JI)V",                     (void*)native_drawColor },
     { "native_save",      "(JI)I",                     (void*)native_save },
     { "native_restore",   "(J)V",                      (void*)native_restore },
     { "native_getWidth",  "(J)I",                      (void*)native_getWidth },

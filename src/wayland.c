@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <unistd.h>
+#include <linux/input-event-codes.h>
 #include "nova.h"
 #include "xdg-shell-client-protocol.h"
 #include "xdg-decoration-unstable-v1-client-protocol.h"
@@ -98,6 +100,197 @@ static const struct xdg_toplevel_listener kXdgToplevelListener = {
     .wm_capabilities = NULL,
 };
 
+/* Input event handlers */
+static void pointer_enter(void *data, struct wl_pointer *wl_pointer,
+                         uint32_t serial, struct wl_surface *surface,
+                         wl_fixed_t surface_x, wl_fixed_t surface_y) {
+    (void)data;
+    (void)wl_pointer;
+    (void)serial;
+    (void)surface;
+    (void)surface_x;
+    (void)surface_y;
+}
+
+static void pointer_leave(void *data, struct wl_pointer *wl_pointer,
+                         uint32_t serial, struct wl_surface *surface) {
+    (void)data;
+    (void)wl_pointer;
+    (void)serial;
+    (void)surface;
+}
+
+static void pointer_motion(void *data, struct wl_pointer *wl_pointer,
+                          uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y) {
+    (void)wl_pointer;
+    struct nova_state *state = (struct nova_state *)data;
+    if (!state->jvm || !state->env) return;
+
+    double x = wl_fixed_to_double(surface_x);
+    double y = wl_fixed_to_double(surface_y);
+
+    jclass canvas_render = (*state->env)->FindClass(state->env, "nova/internal/CanvasRender");
+    if (canvas_render) {
+        jmethodID dispatch = (*state->env)->GetStaticMethodID(state->env, canvas_render,
+                                                               "dispatchMotionEvent", "(JIFF)V");
+        if (dispatch) {
+            (*state->env)->CallStaticVoidMethod(state->env, canvas_render, dispatch,
+                                               (jlong)time, (jint)2, (jfloat)x, (jfloat)y);
+        }
+        (*state->env)->DeleteLocalRef(state->env, canvas_render);
+    }
+}
+
+static void pointer_button(void *data, struct wl_pointer *wl_pointer,
+                          uint32_t serial, uint32_t time, uint32_t button, uint32_t state_enum) {
+    (void)wl_pointer;
+    (void)serial;
+    struct nova_state *state = (struct nova_state *)data;
+    if (!state->jvm || !state->env) return;
+
+    int action = state_enum ? 0 : 1; /* 0=down, 1=up */
+    if (button != BTN_LEFT) return;
+
+    jclass canvas_render = (*state->env)->FindClass(state->env, "nova/internal/CanvasRender");
+    if (canvas_render) {
+        jmethodID dispatch = (*state->env)->GetStaticMethodID(state->env, canvas_render,
+                                                               "dispatchMotionEvent", "(JIFF)V");
+        if (dispatch) {
+            (*state->env)->CallStaticVoidMethod(state->env, canvas_render, dispatch,
+                                               (jlong)time, (jint)action, (jfloat)0, (jfloat)0);
+        }
+        (*state->env)->DeleteLocalRef(state->env, canvas_render);
+    }
+}
+
+static void pointer_axis(void *data, struct wl_pointer *wl_pointer,
+                        uint32_t time, uint32_t axis, wl_fixed_t value) {
+    (void)data;
+    (void)wl_pointer;
+    (void)time;
+    (void)axis;
+    (void)value;
+}
+
+static void pointer_frame(void *data, struct wl_pointer *wl_pointer) {
+    (void)data;
+    (void)wl_pointer;
+}
+
+static const struct wl_pointer_listener pointer_listener = {
+    .enter = pointer_enter,
+    .leave = pointer_leave,
+    .motion = pointer_motion,
+    .button = pointer_button,
+    .axis = pointer_axis,
+    .frame = pointer_frame,
+};
+
+static void keyboard_keymap(void *data, struct wl_keyboard *wl_keyboard,
+                           uint32_t format, int32_t fd, uint32_t size) {
+    (void)data;
+    (void)wl_keyboard;
+    (void)format;
+    (void)fd;
+    (void)size;
+    close(fd);
+}
+
+static void keyboard_enter(void *data, struct wl_keyboard *wl_keyboard,
+                          uint32_t serial, struct wl_surface *surface,
+                          struct wl_array *keys) {
+    (void)data;
+    (void)wl_keyboard;
+    (void)serial;
+    (void)surface;
+    (void)keys;
+}
+
+static void keyboard_leave(void *data, struct wl_keyboard *wl_keyboard,
+                          uint32_t serial, struct wl_surface *surface) {
+    (void)data;
+    (void)wl_keyboard;
+    (void)serial;
+    (void)surface;
+}
+
+static void keyboard_key(void *data, struct wl_keyboard *wl_keyboard,
+                        uint32_t serial, uint32_t time, uint32_t key, uint32_t state_enum) {
+    (void)wl_keyboard;
+    (void)serial;
+    struct nova_state *state = (struct nova_state *)data;
+    if (!state->jvm || !state->env) return;
+
+    int action = state_enum ? 0 : 1;
+    int keycode = key + 8;
+
+    jclass canvas_render = (*state->env)->FindClass(state->env, "nova/internal/CanvasRender");
+    if (canvas_render) {
+        jmethodID dispatch = (*state->env)->GetStaticMethodID(state->env, canvas_render,
+                                                               "dispatchKeyEvent", "(IIJI)V");
+        if (dispatch) {
+            (*state->env)->CallStaticVoidMethod(state->env, canvas_render, dispatch,
+                                               (jint)action, (jint)keycode, (jlong)time, (jint)0);
+        }
+        (*state->env)->DeleteLocalRef(state->env, canvas_render);
+    }
+}
+
+static void keyboard_modifiers(void *data, struct wl_keyboard *wl_keyboard,
+                              uint32_t serial, uint32_t mods_depressed, uint32_t mods_latched,
+                              uint32_t mods_locked, uint32_t group) {
+    (void)data;
+    (void)wl_keyboard;
+    (void)serial;
+    (void)mods_depressed;
+    (void)mods_latched;
+    (void)mods_locked;
+    (void)group;
+}
+
+static void keyboard_repeat_info(void *data, struct wl_keyboard *wl_keyboard,
+                                int32_t rate, int32_t delay) {
+    (void)data;
+    (void)wl_keyboard;
+    (void)rate;
+    (void)delay;
+}
+
+static const struct wl_keyboard_listener keyboard_listener = {
+    .keymap = keyboard_keymap,
+    .enter = keyboard_enter,
+    .leave = keyboard_leave,
+    .key = keyboard_key,
+    .modifiers = keyboard_modifiers,
+    .repeat_info = keyboard_repeat_info,
+};
+
+static void seat_capabilities(void *data, struct wl_seat *wl_seat, uint32_t capabilities) {
+    struct nova_state *state = (struct nova_state *)data;
+    if (!state) return;
+
+    if ((capabilities & WL_SEAT_CAPABILITY_POINTER) && !state->pointer) {
+        state->pointer = wl_seat_get_pointer(wl_seat);
+        wl_pointer_add_listener(state->pointer, &pointer_listener, state);
+    }
+
+    if ((capabilities & WL_SEAT_CAPABILITY_KEYBOARD) && !state->keyboard) {
+        state->keyboard = wl_seat_get_keyboard(wl_seat);
+        wl_keyboard_add_listener(state->keyboard, &keyboard_listener, state);
+    }
+}
+
+static void seat_name(void *data, struct wl_seat *wl_seat, const char *name) {
+    (void)data;
+    (void)wl_seat;
+    (void)name;
+}
+
+static const struct wl_seat_listener seat_listener = {
+    .capabilities = seat_capabilities,
+    .name = seat_name,
+};
+
 struct nova_state *nova_state_create(void) {
     struct nova_state *state = calloc(1, sizeof(struct nova_state));
     if (!state) return NULL;
@@ -121,6 +314,10 @@ struct nova_state *nova_state_create(void) {
     }
 
     xdg_wm_base_add_listener(state->wm_base, &kWmBaseListener, state);
+
+    if (state->seat) {
+        wl_seat_add_listener(state->seat, &seat_listener, state);
+    }
 
     return state;
 }

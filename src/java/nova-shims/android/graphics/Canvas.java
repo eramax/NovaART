@@ -41,9 +41,14 @@ public class Canvas {
         return native_getHeight(mNativeCanvasWrapper);
     }
 
+    public void drawColor(int color) {
+        native_drawColor(mNativeCanvasWrapper, color);
+    }
+
     private native long initRaster(long bitmapHandle);
     private native void native_setBitmap(long canvasHandle, long bitmapHandle);
     private native void native_drawRect(long canvasHandle, float left, float top, float right, float bottom, long paintHandle);
+    private native void native_drawColor(long canvasHandle, int color);
     private native int native_save(long canvasHandle, int saveFlags);
     private native void native_restore(long canvasHandle);
     private native int native_getWidth(long canvasHandle);

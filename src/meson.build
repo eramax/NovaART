@@ -71,6 +71,10 @@ softgfx_sources = files(
   'softgfx.c',
 )
 
+canvas_render_sources = files(
+  'canvas_render.c',
+)
+
 novaart_inc = include_directories('.')
 host_compat_inc = include_directories('.', 'compat', '../third_party/gles3jni')
 
@@ -110,7 +114,7 @@ shared_library('gles3jni',
   install_dir: 'lib')
 
 executable('novaart',
-  novaart_sources + softgfx_sources,
+  novaart_sources + softgfx_sources + canvas_render_sources,
   xdg_shell_client_protocol_h,
   xdg_shell_protocol_c,
   xdg_decoration_client_protocol_h,
