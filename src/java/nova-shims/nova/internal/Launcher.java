@@ -1,5 +1,6 @@
 package nova.internal;
 
+import android.view.ViewGroup;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,6 +41,9 @@ public final class Launcher {
     private Launcher() {}
 
     public static void launch(String apkPath, String activityClass, String packageName) throws Exception {
+        Thread.setDefaultUncaughtExceptionHandler((t, e) ->
+                System.err.println("[NovaLauncher] UNCAUGHT in " + t.getName() + ": " + e));
+
         String androidData = System.getenv("ANDROID_DATA");
         File optimizedDir = new File(androidData == null ? "." : androidData, "dex");
         if (!optimizedDir.exists() && !optimizedDir.mkdirs()) {
@@ -97,19 +101,62 @@ public final class Launcher {
             android.view.View viewInstance = (android.view.View) contentView;
             ViewDispatcher.setRootView(viewInstance);
 
-            logGlThreadState(contentView);
-            tryInvoke(contentView, "novaAttachToWindow", new Class<?>[0], new Object[0]);
-            tryInvoke(contentView, "novaSimulateSurfaceLifecycle",
+            /* Recurse into ViewGroups to find GLSurfaceView or TextureView */
+            android.view.View renderTarget = findRenderTarget(viewInstance);
+            if (renderTarget != viewInstance) {
+                System.out.println("[NovaLauncher] Found render target: " + renderTarget.getClass().getName());
+            }
+
+            logGlThreadState(renderTarget);
+            tryInvoke(renderTarget, "novaAttachToWindow", new Class<?>[0], new Object[0]);
+            tryInvoke(renderTarget, "novaSimulateSurfaceLifecycle",
                     new Class<?>[] { int.class, int.class },
                     new Object[] { 960, 540 });
 
-            boolean isGLSurfaceView = tryInvokeReturning(contentView, "requestRender", new Class<?>[0], new Object[0]);
-            if (!isGLSurfaceView) {
-                System.out.println("[NovaLauncher] Not GLSurfaceView, starting Canvas render coordinator");
-                RenderCoordinator.getInstance().start(viewInstance, 960, 540);
+            boolean isGLSurfaceView = isClassOrSubclass(renderTarget.getClass(), "android.opengl.GLSurfaceView")
+                    || tryInvokeReturning(renderTarget, "requestRender", new Class<?>[0], new Object[0]);
+            boolean isTextureView = isClassOrSubclass(renderTarget.getClass(), "android.view.TextureView");
+            if (isGLSurfaceView) {
+                System.out.println("[NovaLauncher] GLSurfaceView — GL thread drives rendering via requestRender");
+            } else if (isTextureView) {
+                System.out.println("[NovaLauncher] TextureView — app drives rendering via lockCanvas/unlockCanvasAndPost");
+            } else {
+                System.out.println("[NovaLauncher] Not GLSurfaceView/TextureView, starting Canvas render coordinator");
+                RenderCoordinator.getInstance().start(renderTarget, 960, 540);
             }
-            logGlThreadState(contentView);
+            logGlThreadState(renderTarget);
         }
+    }
+
+    private static android.view.View findRenderTarget(android.view.View root) {
+        /* Prefer GLSurfaceView → TextureView → SurfaceView → root */
+        android.view.View glsv = findByType(root, "android.opengl.GLSurfaceView");
+        if (glsv != null) return glsv;
+        android.view.View tv = findByType(root, "android.view.TextureView");
+        if (tv != null) return tv;
+        android.view.View sv = findByType(root, "android.view.SurfaceView");
+        if (sv != null) return sv;
+        return root;
+    }
+
+    private static android.view.View findByType(android.view.View v, String className) {
+        if (isClassOrSubclass(v.getClass(), className)) return v;
+        if (v instanceof android.view.ViewGroup) {
+            android.view.ViewGroup vg = (android.view.ViewGroup) v;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                android.view.View found = findByType(vg.getChildAt(i), className);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isClassOrSubclass(Class<?> cls, String targetName) {
+        while (cls != null) {
+            if (cls.getName().equals(targetName)) return true;
+            cls = cls.getSuperclass();
+        }
+        return false;
     }
 
     private static void initApplication(String apkPath, ClassLoader loader) {
@@ -128,12 +175,17 @@ public final class Launcher {
             ctor.setAccessible(true);
             Object appInstance = ctor.newInstance();
             System.out.println("[NovaLauncher] Application=" + appInstance.getClass().getName());
+            /* Try to set static singleton fields to this instance before calling onCreate,
+             * so any code that accesses getInstance() from within onCreate() finds the value. */
+            trySetStaticSingleton(appClass, appInstance);
             try {
                 Method onCreate = appClass.getMethod("onCreate");
                 onCreate.invoke(appInstance);
                 System.out.println("[NovaLauncher] Application.onCreate() done");
             } catch (NoSuchMethodException e) {
                 // no custom onCreate, fine
+            } catch (Exception e) {
+                System.out.println("[NovaLauncher] Application.onCreate() failed (non-fatal): " + e.getCause());
             }
         } catch (Exception e) {
             System.out.println("[NovaLauncher] Application init failed: " + e);
@@ -143,6 +195,21 @@ public final class Launcher {
     /* Scan the binary AndroidManifest for the application android:name attribute.
      * The binary manifest encodes strings in a string pool. We look for the
      * package-prefixed class names next to the "android:name" attribute key. */
+    private static void trySetStaticSingleton(Class<?> appClass, Object appInstance) {
+        /* Many apps keep a static `sInstance` / `instance` / `mApp` field of the Application type.
+         * Set it before onCreate() so that code calling getInstance() from within onCreate() works. */
+        for (java.lang.reflect.Field f : appClass.getDeclaredFields()) {
+            if (java.lang.reflect.Modifier.isStatic(f.getModifiers())
+                    && f.getType().isAssignableFrom(appClass)) {
+                try {
+                    f.setAccessible(true);
+                    f.set(null, appInstance);
+                    System.out.println("[NovaLauncher] Pre-set Application singleton field: " + f.getName());
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
     private static String findApplicationClassName(String apkPath) {
         try (ZipFile zip = new ZipFile(apkPath)) {
             ZipEntry entry = zip.getEntry("AndroidManifest.xml");
@@ -179,6 +246,10 @@ public final class Launcher {
                 cur.append((char) ch);
             } else {
                 String s = cur.toString();
+                /* Strip any leading numeric/non-identifier characters (length prefix in binary XML) */
+                int start = 0;
+                while (start < s.length() && !Character.isLetter(s.charAt(start))) start++;
+                s = s.substring(start);
                 if (s.length() > 10 && s.contains("Application") && s.contains(".")) {
                     best = s;
                 }

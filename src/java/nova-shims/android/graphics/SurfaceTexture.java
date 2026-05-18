@@ -7,6 +7,9 @@ public class SurfaceTexture {
 
     private int mTexName;
     private OnFrameAvailableListener mListener;
+    /** Nova: backing bitmap supplied by TextureView, consumed by Surface.lockCanvas */
+    public Bitmap novaBitmap;
+    public android.graphics.Canvas novaCanvas;
 
     public SurfaceTexture(int texName) {
         mTexName = texName;

@@ -32,6 +32,10 @@ public class Window {
         return mDecorView;
     }
 
+    public View peekDecorView() {
+        return mDecorView;
+    }
+
     public void setSoftInputMode(int mode) {}
 
     public void setBackgroundDrawable(android.graphics.drawable.Drawable d) {}

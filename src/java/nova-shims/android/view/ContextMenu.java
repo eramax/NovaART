@@ -1,0 +1,7 @@
+package android.view;
+
+public interface ContextMenu extends Menu {
+    interface ContextMenuInfo {}
+    ContextMenu setHeaderTitle(CharSequence title);
+    ContextMenu setHeaderTitle(int titleRes);
+}

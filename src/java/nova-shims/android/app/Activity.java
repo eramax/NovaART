@@ -9,6 +9,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.util.Log;
+import android.content.res.Configuration;
 
 public class Activity extends Context {
     private static final String TAG = "NovaActivity";
@@ -45,6 +46,27 @@ public class Activity extends Context {
     public WindowManager getWindowManager() {
         return (WindowManager) getSystemService(Context.WINDOW_SERVICE);
     }
+
+    private final FragmentManager mFragmentManager = new FragmentManager.NovaFragmentManager();
+
+    public FragmentManager getFragmentManager() { return mFragmentManager; }
+
+    public Object getLastNonConfigurationInstance() { return null; }
+    public Object onRetainNonConfigurationInstance() { return null; }
+    public void onConfigurationChanged(Configuration newConfig) {}
+    public void onSaveInstanceState(android.os.Bundle outState) {}
+    public void onRestoreInstanceState(android.os.Bundle savedInstanceState) {}
+    public void onStart() {}
+    public void onStop() {}
+    public void onDestroy() {}
+    public void invalidateOptionsMenu() {}
+    public boolean onCreateOptionsMenu(android.view.Menu menu) { return false; }
+    public boolean onOptionsItemSelected(android.view.MenuItem item) { return false; }
+    public void supportInvalidateOptionsMenu() {}
+    public android.view.MenuInflater getMenuInflater() { return null; }
+    public void onBackPressed() {}
+    public void onWindowFocusChanged(boolean hasFocus) {}
+    public android.app.ActionBar getActionBar() { return null; }
 
     public android.content.SharedPreferences getPreferences(int mode) {
         return getSharedPreferences(getClass().getSimpleName(), mode);
@@ -88,16 +110,12 @@ public class Activity extends Context {
         if (inflatedView != null) {
             setContentView(inflatedView);
         } else {
-            Log.e(TAG, "Failed to inflate layout, using fallback");
-            setContentView(new View(this));
+            setContentView(new android.widget.LinearLayout(this));
         }
     }
 
-    public View findViewById(int id) {
-        if (mContentView instanceof WebView) {
-            return mContentView;
-        }
-        return new WebView(this);
+    public <T extends View> T findViewById(int id) {
+        return (T) mContentView;
     }
 
     public View getContentView() {

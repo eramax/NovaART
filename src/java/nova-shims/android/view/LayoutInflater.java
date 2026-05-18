@@ -2,6 +2,7 @@ package android.view;
 
 import android.app.Activity;
 import android.content.Context;
+import android.util.AttributeSet;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.ResourceManager;
@@ -18,7 +19,16 @@ import java.util.zip.ZipFile;
 
 public class LayoutInflater {
     private static final String TAG = "LayoutInflater";
+
+    public interface Factory {
+        View onCreateView(String name, Context context, AttributeSet attrs);
+    }
+
+    public interface Factory2 extends Factory {
+        View onCreateView(View parent, String name, Context context, AttributeSet attrs);
+    }
     private Context mContext;
+    private Factory2 mFactory2;
     private static final Map<String, Class<?>> VIEW_CLASSES = new HashMap<>();
 
     static {
@@ -37,6 +47,13 @@ public class LayoutInflater {
     public static LayoutInflater from(Context context) {
         return new LayoutInflater(context);
     }
+
+    public void setFactory(Factory factory) {}
+    public void setFactory2(Factory2 factory) { mFactory2 = factory; }
+    public Factory getFactory() { return mFactory2; }
+    public Factory2 getFactory2() { return mFactory2; }
+    public Context getContext() { return mContext; }
+    public LayoutInflater cloneInContext(Context newContext) { return new LayoutInflater(newContext); }
 
     public View inflate(int layoutResId, ViewGroup parent) {
         String layoutXml = loadLayoutXmlFromApk();
@@ -277,7 +294,6 @@ public class LayoutInflater {
     }
 
     private View fallbackView() {
-        System.err.println("[LayoutInflater] Using fallback empty View");
-        return new View(mContext);
+        return new android.widget.LinearLayout(mContext);
     }
 }

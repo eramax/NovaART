@@ -68,11 +68,16 @@ public class Handler {
         return sendMessageDelayed(msg, delayMillis);
     }
 
+    public final Looper getLooper() { return mLooper; }
+
     public final void removeCallbacksAndMessages(Object token) {}
-
+    public final void removeCallbacks(Runnable r) {}
     public final void removeMessages(int what) {}
-
     public final boolean hasMessages(int what) { return false; }
+    public final boolean sendMessageAtFrontOfQueue(Message msg) { return sendMessage(msg); }
+    public final boolean sendEmptyMessageDelayed(int what, long delayMillis) {
+        return sendMessageDelayed(Message.obtain(this, what), delayMillis);
+    }
 
     public final void dispatchMessage(Message msg) {
         if (msg.callback != null) {

@@ -3,6 +3,77 @@
 This is a hand-maintained engineering log. Entries record completed and verified
 milestones only.
 
+## 2026-05-18 19:30 CEST
+
+Milestone:
+- Phase 2 test run: `com.watabou.pixeldungeon` (GLSurfaceView/OpenGL app)
+  renders successfully. `Material Life` (TextureView/Canvas app) reaches
+  correct render path detection but render loop is not yet drawing frames.
+
+Completed:
+
+### Pixel Dungeon (`com.watabou.pixeldungeon`) — Working
+
+- Implemented GLSurfaceView rendering path:
+  - Application singleton initialization via binary AndroidManifest parsing
+  - `initApplication()` in Launcher pre-sets static singleton fields before `onCreate()`
+  - GL thread starts and `onDrawFrame` runs in stable loop
+- Added JNI support for BitmapFactory + OpenGL texture upload:
+  - [src/jni/android_graphics_BitmapFactory.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/android_graphics_BitmapFactory.c) — libpng-backed PNG decoding
+  - [src/jni/android_opengl_GLES20.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/android_opengl_GLES20.c) — GLES20 wrapper
+  - [src/jni/android_opengl_GLUtils.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/android_opengl_GLUtils.c) — texture upload from Bitmap
+- Extended framework shims to satisfy Pixel Dungeon's framework requirements:
+  - Fragment, FragmentManager, FragmentTransaction stubs
+  - ActionBar, MenuInflater, Menu, MenuItem stubs
+  - ViewGroup.LayoutParams, MarginLayoutParams
+  - Bitmap.getPixels, setPixels, eraseColor, createBitmap variants
+  - RectF copy constructor and extra methods
+  - Handler.getLooper(), Window.getDecorView/peekDecorView
+  - Activity: getWindowManager, getFragmentManager, getPreferences, getLastNonConfigurationInstance
+  - Application: onCreate, getApplicationContext, ActivityLifecycleCallbacks
+  - SoundPool: load(AssetFileDescriptor), autoResume, unload, setVolume, setRate
+  - MediaPlayer: setDataSource(FileDescriptor, long, long), setDataSource(Context, Uri)
+  - AssetManager.openFd() → extracts asset to temp file → AssetFileDescriptor
+  - ComponentCallbacks interface
+  - DecelerateInterpolator stub
+  - WindowManager.LayoutParams implements Parcelable
+
+Verified:
+- Pixel Dungeon renders on screen: GL thread executes, textures load via BitmapFactory + libpng,
+  GLES20 wrappers work. User confirmed "i see it now".
+
+### Material Life (`com.juankysoriano.materiallife`) — TextureView path reached, render loop blocked
+
+Completed:
+- TextureView detection fixed to use class hierarchy traversal (`isClassOrSubclass`),
+  correctly identifies obfuscated `c.c.a.a.d.k` (extends `android.view.TextureView`):
+  - [src/java/nova-shims/nova/internal/Launcher.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/nova/internal/Launcher.java)
+- TextureView classification fixed to use `isClassOrSubclass` instead of class name string match,
+  so obfuscated subclasses are correctly recognized as TextureView
+- Surface(SurfaceTexture) constructor implemented with backing bitmap wiring:
+  - [src/java/nova-shims/android/view/Surface.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/Surface.java) — added `lockCanvas(Rect)` and `unlockCanvasAndPost(Canvas)` that route through `CanvasRender.submitFrame`
+  - [src/java/nova-shims/android/graphics/SurfaceTexture.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/graphics/SurfaceTexture.java) — added `novaBitmap` / `novaCanvas` fields
+  - [src/java/nova-shims/android/view/TextureView.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/TextureView.java) — `initSurface()` now sets backing bitmap on SurfaceTexture
+
+Current state:
+- `onSurfaceTextureAvailable` fires correctly (surface available log confirmed)
+- TextureView correctly classified, no RenderCoordinator started
+- `Surface(SurfaceTexture)` constructor NOT being called — render thread is not starting
+- No uncaught exceptions on background threads
+- DEX analysis shows Material Life uses `lockCanvas` only as a string literal (likely for reflection),
+  no direct `Surface.lockCanvas` call in method table
+- Material Life constructor calls `ViewGroup.addView` (self-adds to parent during construction) — ✓ working
+- Suspected root cause: render loop depends on `android.animation.ValueAnimator`
+  (referenced in DEX as type but not as direct method call — possibly used via
+  `ObjectAnimator`/`AnimatorSet` to drive per-frame callbacks) which is not yet shimmed
+
+In progress:
+- Need to determine exact rendering trigger in `c.c.a.a.d.k`'s `onSurfaceTextureAvailable`
+  path — likely `ObjectAnimator` or `ValueAnimator` fires frame callbacks that call
+  `Surface.lockCanvas()`
+- Next step: add `android.animation` package stubs (ValueAnimator, ObjectAnimator, AnimatorSet,
+  AnimatorListenerAdapter) and verify render loop starts
+
 ## 2026-05-18 18:05 CEST
 
 Milestone:

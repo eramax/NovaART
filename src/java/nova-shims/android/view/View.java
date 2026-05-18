@@ -11,6 +11,18 @@ public class View {
     private final ViewTreeObserver mViewTreeObserver = new ViewTreeObserver();
     private boolean mAttached;
 
+    public interface OnClickListener { void onClick(View v); }
+    public interface OnLongClickListener { boolean onLongClick(View v); }
+    public interface OnCreateContextMenuListener { void onCreateContextMenu(android.view.ContextMenu menu, View v, android.view.ContextMenu.ContextMenuInfo menuInfo); }
+    public interface OnKeyListener { boolean onKey(View v, int keyCode, KeyEvent event); }
+    public interface OnFocusChangeListener { void onFocusChange(View v, boolean hasFocus); }
+    public interface OnScrollChangeListener { void onScrollChange(View v, int scrollX, int scrollY, int oldScrollX, int oldScrollY); }
+    public interface OnLayoutChangeListener { void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom); }
+    public interface OnAttachStateChangeListener {
+        void onViewAttachedToWindow(View v);
+        void onViewDetachedFromWindow(View v);
+    }
+
     public interface OnTouchListener {
         boolean onTouch(View v, MotionEvent event);
     }
@@ -84,6 +96,16 @@ public class View {
         mOnTouchListener = listener;
     }
 
+    public void setOnClickListener(OnClickListener listener) {}
+    public void setOnLongClickListener(OnLongClickListener listener) {}
+    public void setOnCreateContextMenuListener(OnCreateContextMenuListener listener) {}
+    public void setOnKeyListener(OnKeyListener listener) {}
+    public void setOnFocusChangeListener(OnFocusChangeListener listener) {}
+    public void addOnAttachStateChangeListener(OnAttachStateChangeListener listener) {}
+    public void removeOnAttachStateChangeListener(OnAttachStateChangeListener listener) {}
+    public void addOnLayoutChangeListener(OnLayoutChangeListener listener) {}
+    public void removeOnLayoutChangeListener(OnLayoutChangeListener listener) {}
+
     public void setSystemUiVisibility(int visibility) {}
     public int getSystemUiVisibility() { return 0; }
     public void setKeepScreenOn(boolean keepScreenOn) {}
@@ -109,4 +131,70 @@ public class View {
     public int getMeasuredHeight() { return 540; }
     public void measure(int widthMeasureSpec, int heightMeasureSpec) {}
     public void layout(int l, int t, int r, int b) {}
+    public ViewPropertyAnimator animate() { return new ViewPropertyAnimator(this); }
+    public float getAlpha() { return 1f; }
+    public void setAlpha(float alpha) {}
+    public float getTranslationX() { return 0f; }
+    public float getTranslationY() { return 0f; }
+    public void setTranslationX(float x) {}
+    public void setTranslationY(float y) {}
+    public float getScaleX() { return 1f; }
+    public float getScaleY() { return 1f; }
+    public void setScaleX(float x) {}
+    public void setScaleY(float y) {}
+    public float getRotation() { return 0f; }
+    public void setRotation(float r) {}
+    public float getX() { return 0f; }
+    public float getY() { return 0f; }
+    public void setX(float x) {}
+    public void setY(float y) {}
+    public int getWidth() { return getMeasuredWidth(); }
+    public int getHeight() { return getMeasuredHeight(); }
+    public android.animation.StateListAnimator getStateListAnimator() { return null; }
+    public void setStateListAnimator(android.animation.StateListAnimator animator) {}
+    public void setPadding(int left, int top, int right, int bottom) {}
+    public int getPaddingLeft() { return 0; }
+    public int getPaddingTop() { return 0; }
+    public int getPaddingRight() { return 0; }
+    public int getPaddingBottom() { return 0; }
+    public void setElevation(float elevation) {}
+    public float getElevation() { return 0f; }
+    public void setTag(Object tag) {}
+    public Object getTag() { return null; }
+    public void setTag(int key, Object tag) {}
+    public Object getTag(int key) { return null; }
+    public boolean isAttachedToWindow() { return mAttached; }
+    public android.view.ViewParent getParent() { return null; }
+    public android.content.res.Resources getResources() {
+        return mContext != null ? mContext.getResources() : null;
+    }
+    public void requestLayout() {}
+    public void forceLayout() {}
+    public boolean isInLayout() { return false; }
+    public void setMinimumWidth(int minWidth) {}
+    public void setMinimumHeight(int minHeight) {}
+    public void setClickable(boolean clickable) {}
+    public boolean isClickable() { return false; }
+    public void setLongClickable(boolean longClickable) {}
+    public void setSelected(boolean selected) {}
+    public boolean isSelected() { return false; }
+    public void setEnabled(boolean enabled) {}
+    public boolean isEnabled() { return true; }
+    public boolean isFocused() { return false; }
+    public void bringToFront() {}
+    public int[] getDrawableState() { return new int[0]; }
+    public void refreshDrawableState() {}
+    public void scheduleDrawable(android.graphics.drawable.Drawable who, Runnable what, long when) {}
+    public void unscheduleDrawable(android.graphics.drawable.Drawable who, Runnable what) {}
+    public void unscheduleDrawable(android.graphics.drawable.Drawable who) {}
+    public boolean verifyDrawable(android.graphics.drawable.Drawable who) { return false; }
+    public void drawableStateChanged() {}
+    public void jumpDrawablesToCurrentState() {}
+    public void post(Runnable action) {
+        new android.os.Handler().post(action);
+    }
+    public void postDelayed(Runnable action, long delayMillis) {
+        new android.os.Handler().postDelayed(action, delayMillis);
+    }
+    public void removeCallbacks(Runnable action) {}
 }

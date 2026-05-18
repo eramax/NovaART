@@ -36,8 +36,11 @@ public class TextureView extends View {
     }
 
     public void setSurfaceTextureListener(SurfaceTextureListener listener) {
+        Log.d(TAG, "setSurfaceTextureListener " + (listener != null ? listener.getClass().getName() : "null")
+                + " mAvailable=" + mAvailable);
         mListener = listener;
         if (mAvailable && mListener != null && mSurfaceTexture != null) {
+            Log.d(TAG, "surface already available, firing onSurfaceTextureAvailable immediately");
             mListener.onSurfaceTextureAvailable(mSurfaceTexture, mWidth, mHeight);
         }
     }
@@ -62,7 +65,9 @@ public class TextureView extends View {
         if (mAvailable) return;
         mBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
         mCanvas = new Canvas(mBitmap);
-        mSurfaceTexture = new SurfaceTexture(0);
+        mSurfaceTexture = new android.graphics.SurfaceTexture(0);
+        mSurfaceTexture.novaBitmap = mBitmap;
+        mSurfaceTexture.novaCanvas = mCanvas;
         mAvailable = true;
         Log.d(TAG, "TextureView surface available " + mWidth + "x" + mHeight);
         if (mListener != null) {
@@ -74,13 +79,22 @@ public class TextureView extends View {
         return lockCanvas(null);
     }
 
+    private int mFrameCount = 0;
+
     public Canvas lockCanvas(Rect dirty) {
         if (!mAvailable) initSurface();
+        mFrameCount++;
+        if (mFrameCount <= 3 || mFrameCount % 60 == 0) {
+            Log.d(TAG, "lockCanvas #" + mFrameCount);
+        }
         return mCanvas;
     }
 
     public void unlockCanvasAndPost(Canvas canvas) {
         if (mBitmap == null) return;
+        if (mFrameCount <= 3 || mFrameCount % 60 == 0) {
+            Log.d(TAG, "unlockCanvasAndPost #" + mFrameCount + " → submitFrame");
+        }
         try {
             CanvasRender.submitFrame(mBitmap);
         } catch (Exception e) {
