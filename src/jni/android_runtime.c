@@ -15,6 +15,8 @@ int register_android_graphics_Canvas(JNIEnv *env);
 int register_android_graphics_Paint(JNIEnv *env);
 int register_android_graphics_Bitmap(JNIEnv *env);
 int register_com_android_internal_graphics_NativeUtils(JNIEnv *env);
+int register_com_google_android_gles_jni_EGLImpl(JNIEnv *env);
+int register_com_google_android_gles_jni_GLImpl(JNIEnv *env);
 
 /*
  * gRegJNI[] — central registration table mirroring AOSP's AndroidRuntime.cpp
@@ -38,6 +40,10 @@ static const RegJNIProc gRegJNI[] = {
     register_android_graphics_Paint,
     register_android_graphics_Bitmap,
     register_com_android_internal_graphics_NativeUtils,
+
+    /* EGL/GL bootstrap */
+    register_com_google_android_gles_jni_EGLImpl,
+    register_com_google_android_gles_jni_GLImpl,
 };
 
 int register_all_jni_stubs(JNIEnv *env) {

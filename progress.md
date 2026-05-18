@@ -3,6 +3,219 @@
 This is a hand-maintained engineering log. Entries record completed and verified
 milestones only.
 
+## 2026-05-18 16:36 CEST
+
+Milestone:
+- Reached visible on-screen rendering for the scoped Phase 1 `gles3jni`
+  host-native path and added Wayland server-side decoration negotiation.
+
+Completed:
+- Fixed the EGL bridge so `GLSurfaceView` and the NovaART Wayland window path
+  use a consistent display/config pair:
+  - [src/jni/com_google_android_gles_jni_EGLImpl.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/com_google_android_gles_jni_EGLImpl.c)
+  - [src/egl.c](/mnt/mydata/projects2/qos/deps/NovaART/src/egl.c)
+- Completed the stub activity/view path enough for `GLSurfaceView` to attach,
+  receive `SurfaceHolder` callbacks, and run its GL thread against the visible
+  Wayland surface:
+  - [src/java/nova-shims/android/app/Activity.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/app/Activity.java)
+  - [src/java/nova-shims/android/view/View.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/View.java)
+  - [src/java/nova-shims/android/view/SurfaceView.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/android/view/SurfaceView.java)
+  - [src/java/nova-shims/nova/internal/Launcher.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/nova/internal/Launcher.java)
+  - [src/java/aosp/android/opengl/GLSurfaceView.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/aosp/android/opengl/GLSurfaceView.java)
+- Added `xdg-decoration-unstable-v1` negotiation and request for
+  compositor-provided server-side decorations:
+  - [src/nova.h](/mnt/mydata/projects2/qos/deps/NovaART/src/nova.h)
+  - [src/meson.build](/mnt/mydata/projects2/qos/deps/NovaART/src/meson.build)
+  - [src/wayland.c](/mnt/mydata/projects2/qos/deps/NovaART/src/wayland.c)
+
+Verified:
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART build-host`
+- visual confirmation: `gles3jni` renders on screen and rotates in the NovaART
+  Wayland window
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART build-framework`
+- phase1 APK execution checks:
+  - `gles3jni.apk`: launch path reaches ART, launcher, and EGL setup, but a
+    repeated run currently fails in native-lib staging with:
+    `java.nio.file.FileAlreadyExistsException` on
+    `output/android-data/dex/native-libs/libgles3jni.so`
+  - `glmark2.apk`: ART and launcher path start, but launch fails on the APK's
+    Android/Bionic native library:
+    `libglmark2-android.so` requires `LIBC` symbol versions that the current
+    glibc host runtime cannot satisfy
+
+Current situation:
+- Scoped Phase 1 rendering is real and visible for the host-native
+  `gles3jni` path.
+- Server-side decoration negotiation is implemented, but button visibility still
+  depends on compositor support for `xdg-decoration`.
+- `glmark2.apk` remains blocked by the general Android-native `.so` ABI gap,
+  which is outside the scoped host-native `gles3jni` replacement.
+
+Next:
+- Fix repeated-run native-lib staging so `gles3jni.apk` relaunches cleanly.
+- Update smoke success criteria to match real render-path evidence instead of
+  the old native log expectation.
+
+## 2026-05-18 16:16 CEST
+
+Milestone:
+- Completed the scoped Phase 1 host-native `gles3jni` replacement path to the
+  point where the app survives the bounded smoke run without bootstrap/runtime
+  failures.
+
+Completed:
+- Fixed host build toolchain selection so mixed C/C++ host builds work
+  reliably with the available AOSP clang prebuilts:
+  - [build-host.sh](/mnt/mydata/projects2/qos/deps/NovaART/build-host.sh)
+- Imported and adapted the official AOSP `gles3jni` native sample sources for
+  host compilation:
+  - [third_party/gles3jni/gles3jni.cpp](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gles3jni.cpp)
+  - [third_party/gles3jni/gles3jni.h](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gles3jni.h)
+  - [third_party/gles3jni/RendererES2.cpp](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/RendererES2.cpp)
+  - [third_party/gles3jni/RendererES3.cpp](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/RendererES3.cpp)
+  - [third_party/gles3jni/gl3stub.c](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gl3stub.c)
+  - [third_party/gles3jni/gl3stub.h](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gl3stub.h)
+- Added host-side Android log compatibility and linked a host-native
+  `libgles3jni.so` into the NovaART build:
+  - [src/compat/android/log.h](/mnt/mydata/projects2/qos/deps/NovaART/src/compat/android/log.h)
+  - [src/host_android_log.c](/mnt/mydata/projects2/qos/deps/NovaART/src/host_android_log.c)
+  - [src/meson.build](/mnt/mydata/projects2/qos/deps/NovaART/src/meson.build)
+  - [scripts/test-host-gles3jni.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/test-host-gles3jni.sh)
+- Updated the launcher so the extracted APK `libgles3jni.so` is explicitly
+  replaced with the host-built one before classloader-native loading:
+  - [src/java/nova-shims/nova/internal/Launcher.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/nova/internal/Launcher.java)
+
+Verified:
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART build-host`
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART test-host-gles3jni`
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART build-framework`
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART smoke-gles3jni TIMEOUT=8`
+- Observed launcher replacement log:
+  - `Staged libgles3jni.so from /mnt/mydata/projects2/qos/deps/NovaART/output/lib/libgles3jni.so`
+- Smoke result:
+  - `smoke run passed: process stayed alive for 8s without bootstrap failures`
+
+Current situation:
+- The scoped Phase 1 tactic is now functioning:
+  - ART bootstrap works
+  - framework overlay works
+  - EGL/JNI bridge works well enough for `gles3jni` launch
+  - host-native `libgles3jni.so` is loaded instead of the APK’s Bionic one
+- This remains a scoped validation path, not a general solution for arbitrary
+  Android-native APK libraries.
+
+Next:
+- Move from survival-only smoke to concrete rendering validation:
+  - verify actual GL initialization and frame execution inside the host-native
+    `gles3jni` renderer
+  - add a stronger smoke/assertion that proves renderer entry beyond mere
+    process survival
+
+## 2026-05-18 12:18 CEST
+
+Milestone:
+- Added a curated dependency patch workflow so local AOSP dependency fixes can
+  be reproduced after a fresh sync.
+
+Completed:
+- Added checked-in dependency patch storage:
+  - [patches/deps/aosp-full/prebuilts-clang-host-linux-x86.patch](/mnt/mydata/projects2/qos/deps/NovaART/patches/deps/aosp-full/prebuilts-clang-host-linux-x86.patch)
+- Added dependency preparation script with `apply`, `status`, and `export`
+  modes:
+  - [scripts/prepare-deps.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/prepare-deps.sh)
+- Added operator targets:
+  - [Makefile](/mnt/mydata/projects2/qos/deps/NovaART/Makefile)
+    - `make prepare-deps`
+    - `make export-deps-patches`
+    - `make status-deps-patches`
+- Explicitly kept the dependency patch set curated instead of sweeping in the
+  whole `deps/aosp-full` dirty state. The current `master-art` client reports
+  a lot of non-Nova noise under `art/` and `build/make/`, so the stored patch
+  set currently includes only the verified host-ART bootstrap fix in
+  `prebuilts/clang/host/linux-x86/Android.bp`.
+
+Verified:
+- dependency patch source confirmed from:
+  - `deps/aosp-full/prebuilts/clang/host/linux-x86/Android.bp`
+- curated patch workflow wired into the top-level operator surface
+
+Current situation:
+- `make prepare-deps` is now the reproducible entry point for the known-safe
+  dependency patch.
+- Any future intentional dependency edits should be added to the curated
+  whitelist before being exported.
+
+## 2026-05-18 12:05 CEST
+
+Milestone:
+- Traced `gles3jni` native-library loading up to the real ABI boundary between
+  Android/Bionic native code and the current glibc host runtime.
+
+Completed:
+- Implemented and verified the first render-path JNI bridge for the OpenGL/EGL
+  side:
+  - [src/jni/com_google_android_gles_jni_EGLImpl.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/com_google_android_gles_jni_EGLImpl.c)
+  - [src/jni/com_google_android_gles_jni_GLImpl.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/com_google_android_gles_jni_GLImpl.c)
+  - [src/jni/android_runtime.c](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/android_runtime.c)
+  - [src/jni/meson.build](/mnt/mydata/projects2/qos/deps/NovaART/src/jni/meson.build)
+- Extended the Java launcher and runtime staging path to diagnose and satisfy
+  loader-level host dependencies:
+  - [src/java/nova-shims/nova/internal/Launcher.java](/mnt/mydata/projects2/qos/deps/NovaART/src/java/nova-shims/nova/internal/Launcher.java)
+  - [src/art.c](/mnt/mydata/projects2/qos/deps/NovaART/src/art.c)
+  - [scripts/smoke-run-gles3jni.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/smoke-run-gles3jni.sh)
+- Added focused verification for launcher/native-lib staging and host Android
+  shim outputs:
+  - [scripts/test-launcher-native-libs.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/test-launcher-native-libs.sh)
+  - [scripts/test-host-android-shims.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/test-host-android-shims.sh)
+  - [Makefile](/mnt/mydata/projects2/qos/deps/NovaART/Makefile)
+- Added a minimal host `libandroid.so` shim and its build/install path:
+  - [src/host_libandroid.c](/mnt/mydata/projects2/qos/deps/NovaART/src/host_libandroid.c)
+  - [src/meson.build](/mnt/mydata/projects2/qos/deps/NovaART/src/meson.build)
+- Added compatibility logging/header support for a host-native `gles3jni`
+  library path and imported the official AOSP sample native sources for that
+  alternative:
+  - [src/compat/android/log.h](/mnt/mydata/projects2/qos/deps/NovaART/src/compat/android/log.h)
+  - [src/host_android_log.c](/mnt/mydata/projects2/qos/deps/NovaART/src/host_android_log.c)
+  - [third_party/gles3jni/gles3jni.cpp](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gles3jni.cpp)
+  - [third_party/gles3jni/gles3jni.h](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gles3jni.h)
+  - [third_party/gles3jni/RendererES2.cpp](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/RendererES2.cpp)
+  - [third_party/gles3jni/RendererES3.cpp](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/RendererES3.cpp)
+  - [third_party/gles3jni/gl3stub.c](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gl3stub.c)
+  - [third_party/gles3jni/gl3stub.h](/mnt/mydata/projects2/qos/deps/NovaART/third_party/gles3jni/gl3stub.h)
+  - [scripts/test-host-gles3jni.sh](/mnt/mydata/projects2/qos/deps/NovaART/scripts/test-host-gles3jni.sh)
+
+Verified:
+- `bash scripts/test-launcher-native-libs.sh`
+- `bash scripts/test-host-android-shims.sh`
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART build-host`
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART build-framework`
+- `make -C /mnt/mydata/projects2/qos/deps/NovaART smoke-gles3jni TIMEOUT=8`
+- Confirmed render-path progression past these loader failures:
+  - `EGLImpl._nativeClassInit()`
+  - missing `libGLESv3.so`
+  - missing `libandroid.so`
+- Confirmed from ELF metadata that the APK-bundled
+  `output/android-data/dex/native-libs/libgles3jni.so` is not glibc-native:
+  - `readelf --version-info` shows `LIBC` version requirements on
+    `libc.so`, `libm.so`, and `libdl.so`
+  - the current failure is:
+    - ``/lib/x86_64-linux-gnu/libc.so.6: version `LIBC' not found``
+
+Current situation:
+- ART bootstrap is working.
+- Java framework overlay and launch path are working.
+- EGL/JNI bridge work is far enough for the app to reach its GL render thread.
+- The remaining blocker is no longer a missing file. It is an ABI mismatch:
+  the APK’s native `libgles3jni.so` is built for Android/Bionic, while NovaART
+  currently runs inside a glibc host process.
+
+Next:
+- Decide explicitly between two directions:
+  - scoped Phase 1 tactic: build and stage a host-native replacement
+    `libgles3jni.so` from the imported AOSP sample sources
+  - general architecture: redesign native-library execution around real
+    Android/Bionic compatibility instead of glibc-host loading
+
 ## 2026-05-18 11:36 CEST
 
 Milestone:

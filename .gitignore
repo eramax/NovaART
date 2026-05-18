@@ -7,6 +7,8 @@ aosp/
 deps/aosp-full/
 deps/aosp-framework-src
 out/
+apks/
+
 # Compiled objects
 *.o
 *.so

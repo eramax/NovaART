@@ -25,7 +25,13 @@ public class Activity extends Context {
     }
 
     public void setContentView(View view) {
+        if (mContentView != null) {
+            mContentView.novaDetachFromWindow();
+        }
         mContentView = view;
+        if (mContentView != null) {
+            mContentView.novaAttachToWindow();
+        }
     }
 
     public View getContentView() {

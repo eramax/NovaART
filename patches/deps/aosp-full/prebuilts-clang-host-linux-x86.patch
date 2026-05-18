@@ -1,0 +1,15 @@
+diff --git a/Android.bp b/Android.bp
+index 67c5339d0..25d27f061 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -392,7 +392,9 @@ cc_defaults {
+     vendor_ramdisk_available: true,
+     recovery_available: true,
+     native_bridge_supported: true,
+-    sdk_version: "minimum",
++    // Local NovaART host-ART bootstrap requires the platform variant here.
++    // On master-art, the sdk_shared libc++ path pulls sdk CRT/runtime variants
++    // that are not wired for this host-only build graph.
+ }
+ 
+ cc_defaults {

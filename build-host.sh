@@ -8,8 +8,8 @@ BUILD_DIR="${BUILD_DIR:-build/host}"
 PREFIX="${PREFIX:-$PWD/output}"
 
 # Toolchain: prefer AOSP prebuilt Clang, fall back to system
-AOSP_CLANG="deps/aosp-full/prebuilts/clang/host/linux-x86/clang-r547379/bin"
-if [ -x "$AOSP_CLANG/clang" ]; then
+AOSP_CLANG="$PWD/deps/aosp-full/prebuilts/clang/host/linux-x86/clang-r547379/bin"
+if [ -x "$AOSP_CLANG/clang" ] && [ -x "$AOSP_CLANG/clang++" ]; then
   export CC="$AOSP_CLANG/clang"
   export CXX="$AOSP_CLANG/clang++"
   echo "  Toolchain: AOSP Clang ($AOSP_CLANG)"

@@ -57,6 +57,7 @@ BIN="$ROOT/output/bin/novaart"
 }
 
 export LD_LIBRARY_PATH="$ROOT/output/lib:$ROOT/output/android-root/apex/com.android.art/lib64:$ROOT/output/android-root/apex/com.android.art/lib:$ROOT/deps/aosp-full/out/host/linux-x86/lib64:$ROOT/deps/aosp-full/out/host/linux-x86/lib"
+export LD_LIBRARY_PATH="$ROOT/output/android-data/dex/native-libs:$LD_LIBRARY_PATH"
 
 LOG_FILE="$(mktemp)"
 trap 'rm -f "$LOG_FILE"' EXIT
@@ -73,12 +74,27 @@ if grep -Eq 'Failed to register JNI stub|Failed to register natives for|ClassNot
   exit 1
 fi
 
+if ! grep -Fq '[GLES3JNI] JNI init' "$LOG_FILE"; then
+  echo "smoke run did not reach native gles3jni init" >&2
+  exit 1
+fi
+
+if ! grep -Fq '[GLES3JNI] JNI resize' "$LOG_FILE"; then
+  echo "smoke run did not reach native gles3jni resize" >&2
+  exit 1
+fi
+
+if ! grep -Fq '[GLES3JNI] JNI first frame' "$LOG_FILE"; then
+  echo "smoke run did not reach first rendered frame" >&2
+  exit 1
+fi
+
 case "$STATUS" in
   124)
-    echo "smoke run passed: process stayed alive for ${TIMEOUT_SECONDS}s without bootstrap failures"
+    echo "smoke run passed: renderer initialized and first frame executed within ${TIMEOUT_SECONDS}s"
     ;;
   0)
-    echo "smoke run completed before timeout without bootstrap failures"
+    echo "smoke run completed after renderer initialization and first frame"
     ;;
   *)
     echo "smoke run exited with status $STATUS" >&2

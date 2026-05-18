@@ -2,10 +2,12 @@ package android.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SurfaceView extends View {
+    private static final String TAG = "NovaSurfaceView";
     private final SurfaceHolder mHolder = new SimpleSurfaceHolder();
 
     public SurfaceView(Context context) {
@@ -21,6 +23,7 @@ public class SurfaceView extends View {
     }
 
     public void novaSimulateSurfaceLifecycle(int width, int height) {
+        Log.d(TAG, "simulate lifecycle " + width + "x" + height + " for " + getClass().getName());
         if (mHolder instanceof SimpleSurfaceHolder) {
             SimpleSurfaceHolder holder = (SimpleSurfaceHolder) mHolder;
             holder.dispatchCreated();
@@ -49,12 +52,15 @@ public class SurfaceView extends View {
         }
 
         void dispatchCreated() {
+            Log.d(TAG, "dispatch surfaceCreated callbacks=" + callbacks.size());
             for (Callback callback : callbacks) {
                 callback.surfaceCreated(this);
             }
         }
 
         void dispatchChanged(int format, int width, int height) {
+            Log.d(TAG, "dispatch surfaceChanged callbacks=" + callbacks.size()
+                    + " size=" + width + "x" + height);
             for (Callback callback : callbacks) {
                 callback.surfaceChanged(this, format, width, height);
             }

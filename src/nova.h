@@ -11,6 +11,8 @@
 struct xdg_wm_base;
 struct xdg_surface;
 struct xdg_toplevel;
+struct zxdg_decoration_manager_v1;
+struct zxdg_toplevel_decoration_v1;
 
 /* Wayland globals */
 struct nova_state {
@@ -19,6 +21,7 @@ struct nova_state {
     struct wl_compositor *compositor;
     struct wl_subcompositor *subcompositor;
     struct xdg_wm_base *wm_base;
+    struct zxdg_decoration_manager_v1 *decoration_manager;
     struct wl_seat *seat;
     struct wl_shm *shm;
     struct wl_keyboard *keyboard;
@@ -35,10 +38,12 @@ struct nova_window {
     struct wl_surface *surface;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
+    struct zxdg_toplevel_decoration_v1 *xdg_decoration;
     struct wl_callback *frame_callback;
     int width;
     int height;
     int closed;
+    int configured;
     void *user_data;
 };
 
@@ -63,6 +68,8 @@ int nova_dispatch(struct nova_state *state);
 struct nova_egl *nova_egl_create(struct nova_state *state, struct nova_window *win);
 void nova_egl_destroy(struct nova_egl *egl);
 void nova_egl_swap_buffers(struct nova_egl *egl);
+struct nova_egl *nova_egl_get_active(void);
+void nova_egl_resize_window(int width, int height);
 
 /* art.c */
 int nova_art_init(struct nova_state *state, int argc, char *argv[]);

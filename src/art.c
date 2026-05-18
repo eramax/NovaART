@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,30 @@ typedef jint (*JNI_CreateJavaVM_t)(JavaVM **pvm, void **penv, JavaVMInitArgs *ar
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
+
+static const char *kGlesV2Candidates[] = {
+    "/lib/x86_64-linux-gnu/libGLESv2.so.2",
+    "/lib/x86_64-linux-gnu/libGLESv2.so",
+    "/usr/lib/x86_64-linux-gnu/libGLESv2.so.2",
+    "/usr/lib/x86_64-linux-gnu/libGLESv2.so",
+    "/lib64/libGLESv2.so.2",
+    "/lib64/libGLESv2.so",
+    "/usr/lib64/libGLESv2.so.2",
+    "/usr/lib64/libGLESv2.so",
+};
+
+struct compat_library_entry {
+    const char *name;
+    const char *path;
+};
+
+static const struct compat_library_entry kHostCompatLibraries[] = {
+    { "libandroid.so", NULL },
+    { "liblog.so", NULL },
+    { "libc.so", "/lib/x86_64-linux-gnu/libc.so.6" },
+    { "libm.so", "/lib/x86_64-linux-gnu/libm.so.6" },
+    { "libdl.so", "/lib/x86_64-linux-gnu/libdl.so.2" },
+};
 
 static int mkdir_p(const char *path) {
     char buf[PATH_MAX];
@@ -42,6 +67,45 @@ static int mkdir_p(const char *path) {
 
 static int file_exists(const char *path) {
     return path != NULL && access(path, F_OK) == 0;
+}
+
+static int copy_file(const char *src, const char *dst) {
+    int in_fd = -1;
+    int out_fd = -1;
+    char buffer[16384];
+    ssize_t read_count;
+
+    in_fd = open(src, O_RDONLY);
+    if (in_fd < 0) {
+        return -1;
+    }
+
+    out_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (out_fd < 0) {
+        close(in_fd);
+        return -1;
+    }
+
+    while ((read_count = read(in_fd, buffer, sizeof(buffer))) > 0) {
+        char *cursor = buffer;
+        ssize_t remaining = read_count;
+        while (remaining > 0) {
+            ssize_t written = write(out_fd, cursor, (size_t)remaining);
+            if (written < 0) {
+                close(in_fd);
+                close(out_fd);
+                return -1;
+            }
+            cursor += written;
+            remaining -= written;
+        }
+    }
+
+    close(in_fd);
+    if (close(out_fd) != 0) {
+        return -1;
+    }
+    return read_count < 0 ? -1 : 0;
 }
 
 static int jni_log_and_clear_exception(JNIEnv *env, const char *context) {
@@ -152,6 +216,135 @@ static void set_env_default(const char *key, const char *value) {
     }
 }
 
+static int prepend_env_path(const char *key, const char *value) {
+    const char *existing;
+    char joined[PATH_MAX * 2];
+
+    if (value == NULL || value[0] == '\0') {
+        return 0;
+    }
+
+    existing = getenv(key);
+    if (existing == NULL || existing[0] == '\0') {
+        return setenv(key, value, 1);
+    }
+
+    if (strstr(existing, value) != NULL) {
+        return 0;
+    }
+
+    if (snprintf(joined, sizeof(joined), "%s:%s", value, existing) >= (int)sizeof(joined)) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+
+    return setenv(key, joined, 1);
+}
+
+static const char *find_system_gles_library(void) {
+    size_t i;
+    for (i = 0; i < sizeof(kGlesV2Candidates) / sizeof(kGlesV2Candidates[0]); ++i) {
+        if (file_exists(kGlesV2Candidates[i])) {
+            return kGlesV2Candidates[i];
+        }
+    }
+    return NULL;
+}
+
+static int ensure_host_gles_compat_library(const char *native_lib_root) {
+    char compat_path[PATH_MAX];
+    const char *system_lib;
+
+    if (snprintf(compat_path, sizeof(compat_path), "%s/libGLESv3.so", native_lib_root) >= (int)sizeof(compat_path)) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+    if (file_exists(compat_path)) {
+        return 0;
+    }
+
+    system_lib = find_system_gles_library();
+    if (system_lib == NULL) {
+        fprintf(stderr, "[NovaART] WARNING: no host libGLESv2 candidate found for libGLESv3.so\n");
+        return 0;
+    }
+
+    unlink(compat_path);
+    if (symlink(system_lib, compat_path) == 0) {
+        printf("[NovaART] Linked %s -> %s\n", compat_path, system_lib);
+        return 0;
+    }
+    if (copy_file(system_lib, compat_path) == 0) {
+        printf("[NovaART] Copied %s from %s\n", compat_path, system_lib);
+        return 0;
+    }
+
+    fprintf(stderr, "[NovaART] Failed to stage %s from %s: %s\n",
+            compat_path, system_lib, strerror(errno));
+    return -1;
+}
+
+static int ensure_host_compat_library(const char *native_lib_root,
+                                      const char *name,
+                                      const char *source_path) {
+    char compat_path[PATH_MAX];
+
+    if (snprintf(compat_path, sizeof(compat_path), "%s/%s", native_lib_root, name) >= (int)sizeof(compat_path)) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+    if (file_exists(compat_path)) {
+        return 0;
+    }
+
+    if (source_path == NULL || !file_exists(source_path)) {
+        return 0;
+    }
+
+    unlink(compat_path);
+    if (symlink(source_path, compat_path) == 0) {
+        printf("[NovaART] Linked %s -> %s\n", compat_path, source_path);
+        return 0;
+    }
+    if (copy_file(source_path, compat_path) == 0) {
+        printf("[NovaART] Copied %s from %s\n", compat_path, source_path);
+        return 0;
+    }
+
+    fprintf(stderr, "[NovaART] Failed to stage %s from %s: %s\n",
+            compat_path, source_path, strerror(errno));
+    return -1;
+}
+
+static int ensure_host_runtime_compat_libraries(const char *output_root,
+                                                const char *native_lib_root) {
+    char host_lib_dir[PATH_MAX];
+    char source_path[PATH_MAX];
+    size_t i;
+
+    if (snprintf(host_lib_dir, sizeof(host_lib_dir), "%s/lib", output_root) >= (int)sizeof(host_lib_dir)) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+
+    for (i = 0; i < sizeof(kHostCompatLibraries) / sizeof(kHostCompatLibraries[0]); ++i) {
+        const char *source = kHostCompatLibraries[i].path;
+        if (source == NULL) {
+            if (snprintf(source_path, sizeof(source_path), "%s/%s", host_lib_dir, kHostCompatLibraries[i].name)
+                >= (int)sizeof(source_path)) {
+                errno = ENAMETOOLONG;
+                return -1;
+            }
+            source = source_path;
+        }
+        if (ensure_host_compat_library(native_lib_root, kHostCompatLibraries[i].name, source) != 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static int append_option(JavaVMOption *options, int *count, const char *text) {
     char *copy = strdup(text);
     if (copy == NULL) {
@@ -173,6 +366,7 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
     char android_i18n_root[PATH_MAX];
     char android_tzdata_root[PATH_MAX];
     char android_data[PATH_MAX];
+    char native_lib_root[PATH_MAX];
     char framework_jar[PATH_MAX];
     char image_path[PATH_MAX];
     char bootclasspath[PATH_MAX * 3];
@@ -192,6 +386,7 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
     snprintf(android_i18n_root, sizeof(android_i18n_root), "%s/com.android.i18n", android_root);
     snprintf(android_tzdata_root, sizeof(android_tzdata_root), "%s/com.android.tzdata", android_root);
     snprintf(android_data, sizeof(android_data), "%s/android-data", output_root);
+    snprintf(native_lib_root, sizeof(native_lib_root), "%s/dex/native-libs", android_data);
     snprintf(framework_jar, sizeof(framework_jar), "%s/out/framework/nova-framework-dex.jar", project_root);
 
     set_env_default("ANDROID_ROOT", android_root);
@@ -202,6 +397,20 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
 
     if (mkdir_p(getenv("ANDROID_DATA")) != 0) {
         fprintf(stderr, "Failed to create ANDROID_DATA at %s\n", getenv("ANDROID_DATA"));
+        return -1;
+    }
+    if (mkdir_p(native_lib_root) != 0) {
+        fprintf(stderr, "Failed to create native library dir at %s\n", native_lib_root);
+        return -1;
+    }
+    if (prepend_env_path("LD_LIBRARY_PATH", native_lib_root) != 0) {
+        fprintf(stderr, "Failed to update LD_LIBRARY_PATH with %s\n", native_lib_root);
+        return -1;
+    }
+    if (ensure_host_runtime_compat_libraries(output_root, native_lib_root) != 0) {
+        return -1;
+    }
+    if (ensure_host_gles_compat_library(native_lib_root) != 0) {
         return -1;
     }
 
@@ -311,6 +520,7 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
     printf("  ANDROID_I18N_ROOT=%s\n", getenv("ANDROID_I18N_ROOT"));
     printf("  ANDROID_TZDATA_ROOT=%s\n", getenv("ANDROID_TZDATA_ROOT"));
     printf("  ANDROID_DATA=%s\n", getenv("ANDROID_DATA"));
+    printf("  LD_LIBRARY_PATH=%s\n", getenv("LD_LIBRARY_PATH"));
 
     /* Register JNI stubs */
     if (state->env) {
