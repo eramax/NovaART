@@ -28,6 +28,8 @@ void nova_paint_set_anti_alias(struct nova_paint *paint, int enabled);
 void nova_paint_set_color(struct nova_paint *paint, uint32_t color);
 void nova_paint_set_stroke_width(struct nova_paint *paint, float width);
 void nova_paint_set_style(struct nova_paint *paint, int style);
+uint32_t nova_paint_get_color(const struct nova_paint *paint);
+float nova_paint_get_stroke_width(const struct nova_paint *paint);
 
 struct nova_canvas *nova_canvas_create(struct nova_bitmap *bitmap);
 void nova_canvas_destroy(struct nova_canvas *canvas);

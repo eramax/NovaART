@@ -14,6 +14,9 @@ int register_android_view_MotionEvent(JNIEnv *env);
 int register_android_graphics_Canvas(JNIEnv *env);
 int register_android_graphics_Paint(JNIEnv *env);
 int register_android_graphics_Bitmap(JNIEnv *env);
+int register_android_graphics_BitmapFactory(JNIEnv *env);
+int register_android_opengl_GLES20(JNIEnv *env);
+int register_android_opengl_GLUtils(JNIEnv *env);
 int register_com_android_internal_graphics_NativeUtils(JNIEnv *env);
 int register_com_google_android_gles_jni_EGLImpl(JNIEnv *env);
 int register_com_google_android_gles_jni_GLImpl(JNIEnv *env);
@@ -40,7 +43,12 @@ static const RegJNIProc gRegJNI[] = {
     register_android_graphics_Canvas,
     register_android_graphics_Paint,
     register_android_graphics_Bitmap,
+    register_android_graphics_BitmapFactory,
     register_com_android_internal_graphics_NativeUtils,
+
+    /* OpenGL ES 2.0 */
+    register_android_opengl_GLES20,
+    register_android_opengl_GLUtils,
 
     /* EGL/GL bootstrap */
     register_com_google_android_gles_jni_EGLImpl,

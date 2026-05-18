@@ -21,6 +21,16 @@ static void native_setStyle(JNIEnv *env, jobject, jlong paintHandle, jint style)
     nova_paint_set_style((struct nova_paint *)(intptr_t)paintHandle, style);
 }
 
+static jint native_getColor(JNIEnv *env, jobject, jlong paintHandle) {
+    (void)env;
+    return (jint)nova_paint_get_color((struct nova_paint *)(intptr_t)paintHandle);
+}
+
+static jfloat native_getStrokeWidth(JNIEnv *env, jobject, jlong paintHandle) {
+    (void)env;
+    return (jfloat)nova_paint_get_stroke_width((struct nova_paint *)(intptr_t)paintHandle);
+}
+
 static jlong native_getNativeFinalizer(JNIEnv *env, jclass) {
     (void)env;
     return return_zero_handle();
@@ -41,6 +51,8 @@ static const JNINativeMethod gMethods[] = {
     { "native_setColor",        "(JI)V",   (void*)native_setColor },
     { "native_setStrokeWidth",  "(JF)V",   (void*)native_setStrokeWidth },
     { "native_setStyle",        "(JI)V",   (void*)native_setStyle },
+    { "native_getColor",          "(J)I",  (void*)native_getColor },
+    { "native_getStrokeWidth",    "(J)F",  (void*)native_getStrokeWidth },
     { "native_getNativeFinalizer", "()J",  (void*)native_getNativeFinalizer },
     { "native_init",            "()J",     (void*)native_init },
     { "native_initWithPaint",   "(J)J",    (void*)native_initWithPaint },

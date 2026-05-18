@@ -211,6 +211,14 @@ void nova_paint_set_style(struct nova_paint *paint, int style) {
     paint->style = style;
 }
 
+uint32_t nova_paint_get_color(const struct nova_paint *paint) {
+    return paint ? paint->color : 0xFF000000u;
+}
+
+float nova_paint_get_stroke_width(const struct nova_paint *paint) {
+    return paint ? paint->stroke_width : 1.0f;
+}
+
 struct nova_canvas *nova_canvas_create(struct nova_bitmap *bitmap) {
     struct nova_canvas *canvas = calloc(1, sizeof(*canvas));
 

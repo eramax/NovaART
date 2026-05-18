@@ -3,8 +3,10 @@ package android.app;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import android.util.Log;
 
@@ -39,6 +41,18 @@ public class Activity extends Context {
     public Window getWindow() {
         return mWindow;
     }
+
+    public WindowManager getWindowManager() {
+        return (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+    }
+
+    public android.content.SharedPreferences getPreferences(int mode) {
+        return getSharedPreferences(getClass().getSimpleName(), mode);
+    }
+
+    public void setVolumeControlStream(int streamType) {}
+    public void setRequestedOrientation(int requestedOrientation) {}
+    public void runOnUiThread(Runnable action) { action.run(); }
 
     public boolean isFinishing() {
         return mFinished;

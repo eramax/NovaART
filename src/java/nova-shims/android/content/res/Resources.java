@@ -49,6 +49,38 @@ public class Resources {
         return new EmptyXmlResourceParser();
     }
 
+    public java.io.InputStream openRawResource(int id) {
+        return openRawResource(id, null);
+    }
+
+    public java.io.InputStream openRawResource(int id, android.util.TypedValue value) {
+        String apkPath = ResourceManager.getInstance().getApkPath();
+        if (apkPath == null) return null;
+        try {
+            java.util.zip.ZipFile zip = new java.util.zip.ZipFile(apkPath);
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                java.util.zip.ZipEntry entry = entries.nextElement();
+                if (!entry.isDirectory()) {
+                    String name = entry.getName();
+                    if (name.startsWith("res/raw/") || name.startsWith("res/") && name.contains(Integer.toHexString(id))) {
+                        final java.util.zip.ZipFile zipRef = zip;
+                        final java.io.InputStream raw = zip.getInputStream(entry);
+                        return new java.io.FilterInputStream(raw) {
+                            @Override public void close() throws java.io.IOException {
+                                super.close(); zipRef.close();
+                            }
+                        };
+                    }
+                }
+            }
+            zip.close();
+        } catch (java.io.IOException e) {
+            android.util.Log.e("NovaResources", "openRawResource failed: " + e);
+        }
+        return null;
+    }
+
     public static class NotFoundException extends RuntimeException {
         public NotFoundException(String message) {
             super(message);

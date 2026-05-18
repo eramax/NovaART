@@ -71,6 +71,9 @@ public final class Launcher {
         logClass("android.opengl.GLSurfaceView", loader);
         logClass("com.android.gles3jni.GLES3JNILib", loader);
 
+        /* Initialize the APK's Application subclass before creating the Activity */
+        initApplication(apkPath, loader);
+
         Class<?> activityType = Class.forName(activityClass, true, loader);
         System.out.println("[NovaLauncher] Loaded=" + activityType.getName());
         if (activityType.getSuperclass() != null) {
@@ -107,6 +110,82 @@ public final class Launcher {
             }
             logGlThreadState(contentView);
         }
+    }
+
+    private static void initApplication(String apkPath, ClassLoader loader) {
+        String appClassName = findApplicationClassName(apkPath);
+        if (appClassName == null || appClassName.isEmpty()) {
+            return;
+        }
+        try {
+            Class<?> appClass = Class.forName(appClassName, true, loader);
+            Class<?> androidAppClass = Class.forName("android.app.Application", false, loader);
+            if (!androidAppClass.isAssignableFrom(appClass)) {
+                System.out.println("[NovaLauncher] " + appClassName + " is not Application subclass, skipping");
+                return;
+            }
+            Constructor<?> ctor = appClass.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            Object appInstance = ctor.newInstance();
+            System.out.println("[NovaLauncher] Application=" + appInstance.getClass().getName());
+            try {
+                Method onCreate = appClass.getMethod("onCreate");
+                onCreate.invoke(appInstance);
+                System.out.println("[NovaLauncher] Application.onCreate() done");
+            } catch (NoSuchMethodException e) {
+                // no custom onCreate, fine
+            }
+        } catch (Exception e) {
+            System.out.println("[NovaLauncher] Application init failed: " + e);
+        }
+    }
+
+    /* Scan the binary AndroidManifest for the application android:name attribute.
+     * The binary manifest encodes strings in a string pool. We look for the
+     * package-prefixed class names next to the "android:name" attribute key. */
+    private static String findApplicationClassName(String apkPath) {
+        try (ZipFile zip = new ZipFile(apkPath)) {
+            ZipEntry entry = zip.getEntry("AndroidManifest.xml");
+            if (entry == null) return null;
+            byte[] data;
+            try (InputStream is = zip.getInputStream(entry)) {
+                java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+                byte[] chunk = new byte[4096];
+                int n;
+                while ((n = is.read(chunk)) != -1) buf.write(chunk, 0, n);
+                data = buf.toByteArray();
+            }
+            /* The binary manifest string pool contains UTF-16LE strings.
+             * We scan for a string that looks like a full Java class name
+             * containing 'Application' and the package structure. */
+            return extractApplicationNameFromManifest(data);
+        } catch (IOException e) {
+            System.out.println("[NovaLauncher] Cannot read manifest: " + e);
+            return null;
+        }
+    }
+
+    private static String extractApplicationNameFromManifest(byte[] data) {
+        /* Scan for UTF-16LE strings that look like Application class names.
+         * In binary XML, the string pool starts at offset 8 (after chunk header).
+         * We take a simpler approach: scan for 16-bit sequences that form valid
+         * Java class names containing "Application". */
+        StringBuilder cur = new StringBuilder();
+        String best = null;
+        for (int i = 0; i + 1 < data.length; i += 2) {
+            int ch = (data[i] & 0xFF) | ((data[i + 1] & 0xFF) << 8);
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+                    || (ch >= '0' && ch <= '9') || ch == '.' || ch == '_' || ch == '$') {
+                cur.append((char) ch);
+            } else {
+                String s = cur.toString();
+                if (s.length() > 10 && s.contains("Application") && s.contains(".")) {
+                    best = s;
+                }
+                cur.setLength(0);
+            }
+        }
+        return best;
     }
 
     private static ClassLoader createDexClassLoader(

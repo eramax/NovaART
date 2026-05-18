@@ -57,14 +57,38 @@ static void nativeGetPixels(JNIEnv *env, jobject, jlong bitmapHandle, jintArray 
     (*env)->ReleaseIntArrayElements(env, pixels, pixel_array, 0);
 }
 
+static void nativeSetPixels(JNIEnv *env, jobject, jlong bitmapHandle, jintArray pixels,
+                             jint offset, jint stride, jint x, jint y, jint width, jint height) {
+    struct nova_bitmap *bitmap = (struct nova_bitmap *)(intptr_t)bitmapHandle;
+    if (!bitmap || !pixels) return;
+    uint32_t *dst = nova_bitmap_pixels(bitmap);
+    if (!dst) return;
+    int bmpWidth = nova_bitmap_width(bitmap);
+    jint *src = (*env)->GetIntArrayElements(env, pixels, NULL);
+    if (!src) return;
+    for (int row = 0; row < height; row++) {
+        int srcIdx = offset + row * stride;
+        int dstIdx = (y + row) * bmpWidth + x;
+        memcpy(dst + dstIdx, src + srcIdx, (size_t)width * sizeof(uint32_t));
+    }
+    (*env)->ReleaseIntArrayElements(env, pixels, src, JNI_ABORT);
+}
+
+static void nativeEraseColor(JNIEnv *env, jobject, jlong bitmapHandle, jint color) {
+    (void)env;
+    nova_bitmap_clear((struct nova_bitmap *)(intptr_t)bitmapHandle, (uint32_t)color);
+}
+
 static const JNINativeMethod gMethods[] = {
     { "nativeCreate",              "(IIZZJ)J", (void*)nativeCreate },
     { "nativeRecycle",             "(J)V",     (void*)nativeRecycle },
     { "nativeGetWidth",            "(J)I",     (void*)nativeGetWidth },
     { "nativeGetHeight",           "(J)I",     (void*)nativeGetHeight },
     { "nativeGetConfig",           "(J)I",     (void*)nativeGetConfig },
-    { "nativeGetPixels",           "(J[I)V",   (void*)nativeGetPixels },
-    { "nativeGetNativeFinalizer",  "()J",      (void*)nativeGetNativeFinalizer },
+    { "nativeGetPixels",           "(J[I)V",          (void*)nativeGetPixels },
+    { "nativeSetPixels",           "(J[IIIIIII)V",    (void*)nativeSetPixels },
+    { "nativeEraseColor",          "(JI)V",           (void*)nativeEraseColor },
+    { "nativeGetNativeFinalizer",  "()J",             (void*)nativeGetNativeFinalizer },
 };
 
 int register_android_graphics_Bitmap(JNIEnv *env) {
