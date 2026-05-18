@@ -6,6 +6,7 @@ output/
 aosp/
 deps/aosp-full/
 deps/aosp-framework-src
+out/
 # Compiled objects
 *.o
 *.so

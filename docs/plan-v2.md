@@ -82,6 +82,18 @@ Produces:
 - `out/soong/host/linux-x86_64/com.android.art/framework/core.art`
 - `out/soong/host/linux-x86_64/com.android.art/framework/core.oat`
 
+For NovaART's host/glibc runtime, also run:
+
+```sh
+cd /mnt/mydata/projects2/qos/deps/NovaART
+bash scripts/build-host-art-runtime.sh
+```
+
+This produces the host artifacts NovaART actually stages and runs against:
+- `deps/aosp-full/out/host/linux-x86/lib64/libart.so`
+- `deps/aosp-full/out/host/linux-x86/bin/dex2oat64`
+- `deps/aosp-full/out/host/linux-x86/bin/dalvikvm64`
+
 ### 0.2 Create framework-source worktree
 
 A second AOSP working tree should be used for framework source acquisition.
@@ -134,6 +146,24 @@ deps/NovaART/
 ├── build-host.sh # Meson build with auto toolchain detection
 └── output/       # Built binary + runtime
 ```
+
+### 0.4 Smoke-test milestone
+
+Current reproducible smoke check:
+
+```sh
+cd /mnt/mydata/projects2/qos/deps/NovaART
+bash scripts/smoke-run-gles3jni.sh
+```
+
+Current success criterion:
+- ART initializes successfully
+- JNI registration completes without `ClassNotFoundException` or `NoSuchMethodError`
+- the `gles3jni` process stays alive under a bounded timeout
+
+This is the current end-of-phase marker for the bootstrap/runtime bring-up
+slice. It proves NovaART is past early ART/classpath/JNI registration failure
+and into long-lived app/runtime execution.
 
 ---
 

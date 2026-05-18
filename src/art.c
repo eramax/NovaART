@@ -101,11 +101,13 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
     char output_root[PATH_MAX];
     char android_root[PATH_MAX];
     char android_art_root[PATH_MAX];
+    char android_i18n_root[PATH_MAX];
+    char android_tzdata_root[PATH_MAX];
     char android_data[PATH_MAX];
     char framework_jar[PATH_MAX];
     char image_path[PATH_MAX];
-    char bootclasspath[PATH_MAX * 2];
-    char bootclasspath_locations[1024];
+    char bootclasspath[PATH_MAX * 3];
+    char bootclasspath_locations[1536];
     JavaVMOption options[8];
     int option_count = 0;
     int i;
@@ -118,11 +120,15 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
     snprintf(output_root, sizeof(output_root), "%s/output", project_root);
     snprintf(android_root, sizeof(android_root), "%s/android-root", output_root);
     snprintf(android_art_root, sizeof(android_art_root), "%s/com.android.art", android_root);
+    snprintf(android_i18n_root, sizeof(android_i18n_root), "%s/com.android.i18n", android_root);
+    snprintf(android_tzdata_root, sizeof(android_tzdata_root), "%s/com.android.tzdata", android_root);
     snprintf(android_data, sizeof(android_data), "%s/android-data", output_root);
     snprintf(framework_jar, sizeof(framework_jar), "%s/out/framework/nova-framework-dex.jar", project_root);
 
     set_env_default("ANDROID_ROOT", android_root);
     set_env_default("ANDROID_ART_ROOT", android_art_root);
+    set_env_default("ANDROID_I18N_ROOT", android_i18n_root);
+    set_env_default("ANDROID_TZDATA_ROOT", android_tzdata_root);
     set_env_default("ANDROID_DATA", android_data);
 
     if (mkdir_p(getenv("ANDROID_DATA")) != 0) {
@@ -151,7 +157,11 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
              "%s/apex/com.android.art/javalib/core-libart.jar:"
              "%s/apex/com.android.art/javalib/okhttp.jar:"
              "%s/apex/com.android.art/javalib/bouncycastle.jar:"
-             "%s/apex/com.android.art/javalib/apache-xml.jar",
+             "%s/apex/com.android.art/javalib/apache-xml.jar:"
+             "%s/apex/com.android.i18n/javalib/core-icu4j.jar:"
+             "%s/apex/com.android.conscrypt/javalib/conscrypt.jar",
+             getenv("ANDROID_ROOT"),
+             getenv("ANDROID_ROOT"),
              getenv("ANDROID_ROOT"),
              getenv("ANDROID_ROOT"),
              getenv("ANDROID_ROOT"),
@@ -162,7 +172,9 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
              "/apex/com.android.art/javalib/core-libart.jar:"
              "/apex/com.android.art/javalib/okhttp.jar:"
              "/apex/com.android.art/javalib/bouncycastle.jar:"
-             "/apex/com.android.art/javalib/apache-xml.jar");
+             "/apex/com.android.art/javalib/apache-xml.jar:"
+             "/apex/com.android.i18n/javalib/core-icu4j.jar:"
+             "/apex/com.android.conscrypt/javalib/conscrypt.jar");
 
     snprintf(image_path, sizeof(image_path), "%s/framework/boot.art", getenv("ANDROID_ART_ROOT"));
     if (!file_exists(image_path)) {
@@ -227,6 +239,8 @@ int nova_art_init(struct nova_state *state, int argc, char *argv[]) {
            (void*)state->jvm, (void*)state->env);
     printf("  ANDROID_ROOT=%s\n", getenv("ANDROID_ROOT"));
     printf("  ANDROID_ART_ROOT=%s\n", getenv("ANDROID_ART_ROOT"));
+    printf("  ANDROID_I18N_ROOT=%s\n", getenv("ANDROID_I18N_ROOT"));
+    printf("  ANDROID_TZDATA_ROOT=%s\n", getenv("ANDROID_TZDATA_ROOT"));
     printf("  ANDROID_DATA=%s\n", getenv("ANDROID_DATA"));
 
     /* Register JNI stubs */
